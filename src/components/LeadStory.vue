@@ -12,7 +12,7 @@ function goto(anchor) {
 const tickerItems = [
   '本月交付 8 套样品解决方案，覆盖 E-Mobility 与工业传动',
   '图纸库新增 216 张设计成果，全部完成版本校核',
-  '常熟二厂完成产线换型，交付周期缩短至 7 天',
+  '平湖工厂完成产线换型，交付周期缩短至 7 天',
   '新增 DWG 在线浏览能力：无需安装 CAD 即可批注与查阅',
 ]
 </script>
@@ -139,8 +139,9 @@ const tickerItems = [
 }
 .lead__deck {
   margin-top: 16px;
-  padding-left: 16px;
+  padding: 6px 0 6px 16px;
   border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
   font-size: clamp(1rem, 1.4vw, 1.14rem);
   color: var(--ink-2);
   max-width: 62ch;
@@ -195,9 +196,10 @@ const tickerItems = [
   align-items: flex-start;
   gap: 12px;
   width: 100%;
-  padding: 12px 6px 12px 0;
+  padding: 12px 6px 12px 8px;
   text-align: left;
   border-bottom: 1px dashed var(--rule);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
   transition: background 0.24s ease, padding-left 0.24s ease;
 }
 .index__item:hover {
@@ -281,8 +283,9 @@ const tickerItems = [
 }
 .ticker__label {
   flex: none;
-  padding: 3px 9px;
+  padding: 3px 10px;
   border: 1px solid var(--ink);
+  border-radius: var(--r-pill);
   background: var(--ink);
   color: var(--paper);
   font-size: 0.6rem;

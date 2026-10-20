@@ -18,7 +18,7 @@ const props = defineProps({
   sheetNo: { type: String, default: '' },
   scale: { type: String, default: '' },
   date: { type: String, default: '' },
-  unit: { type: String, default: '精工图谱 · 常熟二厂' },
+  unit: { type: String, default: '精工图谱 · 平湖工厂' },
   caption: { type: String, default: '' },
   stages: { type: Array, default: () => [] },
   summary: { type: Array, default: () => [] },
@@ -110,10 +110,8 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
         <div class="sheet__body">
           <figure class="canvas">
             <div class="canvas__paper">
-              <span class="corner corner--tl"></span>
               <span class="corner corner--tr"></span>
               <span class="corner corner--bl"></span>
-              <span class="corner corner--br"></span>
               <slot :highlight="hoverPart" />
             </div>
             <figcaption v-if="caption" class="canvas__cap">
@@ -124,7 +122,7 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
 
           <aside class="side">
             <!-- 阶段 -->
-            <div class="side__block">
+            <div class="side__block corner-box">
               <h4 class="side__title">出图阶段</h4>
               <ol class="steps">
                 <li
@@ -143,13 +141,13 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
             </div>
 
             <!-- 说明 -->
-            <div v-if="summary.length" class="side__block">
+            <div v-if="summary.length" class="side__block corner-box">
               <h4 class="side__title">图面说明</h4>
               <p v-for="(t, i) in summary" :key="i" class="side__text">{{ t }}</p>
             </div>
 
             <!-- 明细表 -->
-            <div v-if="bom.length" class="side__block">
+            <div v-if="bom.length" class="side__block corner-box">
               <h4 class="side__title">明细表</h4>
               <table class="bom">
                 <thead>
@@ -182,14 +180,14 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
             </div>
 
             <!-- 技术要求 -->
-            <div v-if="notes.length" class="side__block">
+            <div v-if="notes.length" class="side__block corner-box">
               <h4 class="side__title">技术要求</h4>
               <ul class="notes">
                 <li v-for="(t, i) in notes" :key="i">{{ t }}</li>
               </ul>
             </div>
 
-            <div class="side__block side__block--sign">
+            <div class="side__block side__block--sign corner-box">
               <div class="sign">
                 <span class="mono">设计 张工</span>
                 <span class="mono">审核 李工</span>
@@ -288,13 +286,15 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
 }
 .meter__track {
   position: relative;
-  height: 4px;
+  height: 5px;
   background: var(--paper-4);
+  border-radius: var(--r-pill);
 }
 .meter__fill {
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, var(--accent-2), var(--accent-ink));
+  border-radius: var(--r-pill);
   transform-origin: left;
   transform: scaleX(0);
 }
@@ -302,8 +302,9 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
   position: absolute;
   top: -3px;
   width: 1px;
-  height: 10px;
+  height: 11px;
   background: var(--rule-2);
+  border-radius: var(--r-pill);
 }
 .meter__tick.is-on {
   background: var(--accent-ink);
@@ -324,8 +325,9 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
 .canvas__paper {
   position: relative;
   padding: clamp(8px, 1.2vw, 16px);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.16)), var(--paper-2);
-  border: 1px solid var(--rule-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.52)),
+    var(--paper-2);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
   box-shadow: var(--shadow-m);
 }
 /* 图幅自适应：宽高都不超出可视区域 */
@@ -333,36 +335,27 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
   width: 100%;
   max-height: min(58vh, 640px);
 }
+/* 仅保留右上 + 左下两个角标 */
 .corner {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--accent-ink);
-  opacity: 0.5;
-}
-.corner--tl {
-  top: 4px;
-  left: 4px;
-  border-right: none;
-  border-bottom: none;
+  width: var(--corner);
+  height: var(--corner);
+  border: 0 solid var(--rule-2);
+  pointer-events: none;
 }
 .corner--tr {
-  top: 4px;
-  right: 4px;
-  border-left: none;
-  border-bottom: none;
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-top-right-radius: var(--r-md);
 }
 .corner--bl {
-  bottom: 4px;
-  left: 4px;
-  border-right: none;
-  border-top: none;
-}
-.corner--br {
-  bottom: 4px;
-  right: 4px;
-  border-left: none;
-  border-top: none;
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  border-bottom-left-radius: var(--r-md);
 }
 .canvas__cap {
   display: flex;
@@ -379,9 +372,8 @@ onBeforeUnmount(() => mq?.removeEventListener('change', onMq))
   gap: 14px;
 }
 .side__block {
+  --corner: 34px;
   padding: 12px 14px;
-  border: 1px solid var(--rule);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0)), var(--paper-2);
 }
 .side__title {
   font-size: 0.94rem;

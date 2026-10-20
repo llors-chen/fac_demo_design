@@ -13,6 +13,7 @@ import DrawingGearbox from './components/drawings/DrawingGearbox.vue'
 import DrawingShaft from './components/drawings/DrawingShaft.vue'
 import DwgViewer from './components/DwgViewer.vue'
 import LeadStory from './components/LeadStory.vue'
+import PartCompare from './components/PartCompare.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import SiteHeader from './components/SiteHeader.vue'
 import { usePageProgress } from './composables/useScrollProgress.js'
@@ -130,6 +131,9 @@ const shaftStages = [
       </div>
     </section>
 
+    <!-- 图纸 04：历史零件对比 + 组装交互（3 : 1） -->
+    <PartCompare />
+
     <!-- 收尾条 -->
     <section class="outro">
       <div class="wrap outro__in">
@@ -231,9 +235,10 @@ const shaftStages = [
 .dwg-note code {
   font-family: var(--mono);
   font-size: 0.76rem;
-  padding: 0 4px;
+  padding: 1px 6px;
   background: var(--paper-3);
   border: 1px solid var(--rule);
+  border-radius: var(--r-xs);
 }
 
 /* 收尾 */
@@ -286,14 +291,16 @@ const shaftStages = [
 }
 .rail__track {
   position: relative;
-  width: 3px;
+  width: 4px;
   height: 120px;
   background: var(--paper-4);
+  border-radius: var(--r-pill);
 }
 .rail__fill {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, var(--accent-2), var(--accent-ink));
+  border-radius: var(--r-pill);
   transform-origin: top;
 }
 .rail__num {
@@ -309,10 +316,11 @@ const shaftStages = [
   z-index: 50;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid var(--ink);
-  background: var(--paper);
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--rule-2);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
+  background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-s);
   transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.22s ease;

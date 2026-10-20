@@ -33,6 +33,7 @@ const icons = {
   arrowDown: '<path d="M12 5v14"/><path d="M6 13l6 6 6-6"/>',
   arrowUp: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
   chevronRight: '<path d="M9.5 6l6 6-6 6"/>',
+  chevronLeft: '<path d="M14.5 6l-6 6 6 6"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   check: '<path d="M5 12.6 9.8 17.4 19 6.8"/>',

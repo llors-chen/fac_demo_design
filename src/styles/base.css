@@ -1,34 +1,46 @@
 /* ============================================================================
-   精工图谱 · 基础样式
-   风格：报纸 / 印刷品质感（米黄纸 + 黑墨 + 淡绿交互色）
+   精工图谱 · 平湖工厂 · 基础样式
+   风格：报纸 / 印刷品质感，但整体更淡更偏白（近白纸底 + 墨黑 + 淡绿交互色）
+   边框语言：多数卡片只用「左下 + 右上」两个角标边框 + 圆角
    ========================================================================== */
 
 :root {
-  /* 纸张 */
-  --paper: #f5eddc;
-  --paper-2: #efe5d0;
-  --paper-3: #e7dbc2;
-  --paper-4: #ddd0b2;
+  /* 纸张（更淡、更偏白） */
+  --paper: #fcfbf8;
+  --paper-2: #f7f5f0;
+  --paper-3: #f1eee7;
+  --paper-4: #e5e1d6;
+  --surface: #ffffff;
 
-  /* 墨色 */
-  --ink: #16130e;
-  --ink-2: #3a342a;
-  --ink-3: #6d6555;
-  --ink-4: #968b76;
+  /* 墨色（略柔化，避免死黑） */
+  --ink: #1d1a16;
+  --ink-2: #46413a;
+  --ink-3: #7c766b;
+  --ink-4: #a7a196;
 
-  /* 分隔线 */
-  --rule: rgba(22, 19, 14, 0.16);
-  --rule-2: rgba(22, 19, 14, 0.34);
-  --rule-3: rgba(22, 19, 14, 0.62);
+  /* 分隔线（更轻） */
+  --rule: rgba(29, 26, 22, 0.1);
+  --rule-2: rgba(29, 26, 22, 0.2);
+  --rule-3: rgba(29, 26, 22, 0.4);
 
   /* 淡绿（交互 / 浮动 / 高亮） */
-  --accent: #8cbf74;
-  --accent-2: #b7d9a3;
-  --accent-3: #dcecd0;
-  --accent-ink: #3d6b2b;
+  --accent: #a3cf8a;
+  --accent-2: #cbe5ba;
+  --accent-3: #eaf4e2;
+  --accent-ink: #4d7a37;
 
-  --shadow-s: 0 1px 0 rgba(22, 19, 14, 0.05), 0 10px 24px -20px rgba(22, 19, 14, 0.55);
-  --shadow-m: 0 1px 0 rgba(22, 19, 14, 0.06), 0 26px 60px -40px rgba(22, 19, 14, 0.65);
+  /* 圆角 */
+  --r-xs: 5px;
+  --r-sm: 9px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+
+  /* 角标边框尺寸（左下 / 右上） */
+  --corner: 46px;
+
+  --shadow-s: 0 1px 2px rgba(29, 26, 22, 0.03), 0 12px 26px -22px rgba(29, 26, 22, 0.35);
+  --shadow-m: 0 1px 2px rgba(29, 26, 22, 0.04), 0 30px 60px -46px rgba(29, 26, 22, 0.45);
 
   /* 字体：中文正文用宋体，标签/数据用等宽，界面辅助用黑体 */
   --serif: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "SimSun", Georgia,
@@ -64,19 +76,19 @@ body {
   overflow-x: hidden;
 }
 
-/* 纸纹（噪点） */
+/* 纸纹（噪点，已调淡） */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.55;
+  opacity: 0.22;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.26'/%3E%3C/svg%3E");
 }
 
-/* 纸面明暗与边缘 */
+/* 纸面明暗（更干净，几乎无黄） */
 body::after {
   content: "";
   position: fixed;
@@ -84,8 +96,8 @@ body::after {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 78% at 50% -12%, rgba(255, 255, 255, 0.55), transparent 62%),
-    radial-gradient(96% 60% at 50% 112%, rgba(116, 100, 66, 0.16), transparent 72%);
+    radial-gradient(120% 78% at 50% -12%, rgba(255, 255, 255, 0.72), transparent 62%),
+    radial-gradient(96% 60% at 50% 112%, rgba(150, 140, 118, 0.06), transparent 72%);
 }
 
 #app {
@@ -130,7 +142,7 @@ svg {
   max-width: 100%;
 }
 
-/* 滚动条（图纸 / 对话窗口内部） */
+/* 滚动条 */
 .scroll-thin {
   scrollbar-width: thin;
   scrollbar-color: var(--rule-2) transparent;
@@ -146,7 +158,7 @@ svg {
   background: var(--rule-2);
   border: 3px solid transparent;
   background-clip: content-box;
-  border-radius: 99px;
+  border-radius: var(--r-pill);
 }
 .scroll-thin::-webkit-scrollbar-thumb:hover {
   background: var(--accent-ink);
@@ -184,9 +196,6 @@ svg {
 .rule-thin {
   border-top: 1px solid var(--rule);
 }
-.rule-ink {
-  border-top: 1px solid var(--ink);
-}
 
 .hairline {
   height: 1px;
@@ -215,12 +224,53 @@ svg {
   column-rule: 1px solid var(--rule);
 }
 @media (max-width: 860px) {
-  .cols-3 {
-    columns: 1;
-  }
+  .cols-3,
   .cols-2 {
     columns: 1;
   }
+}
+
+/* ======================= 角标边框（左下 + 右上） =======================
+   用法：<div class="corner-box">…</div>
+   可选：--corner 控制角标长度；corner-box--full 追加极淡的整圈描边
+   ====================================================================== */
+.corner-box {
+  position: relative;
+  border-radius: 0 var(--r-md) 0 var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.4)),
+    var(--paper-2);
+  box-shadow: var(--shadow-s);
+}
+.corner-box::before,
+.corner-box::after {
+  content: "";
+  position: absolute;
+  width: var(--corner);
+  height: var(--corner);
+  pointer-events: none;
+  border: 0 solid var(--rule-2);
+  transition: border-color 0.28s ease;
+}
+.corner-box::before {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-top-right-radius: var(--r-md);
+}
+.corner-box::after {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  border-bottom-left-radius: var(--r-md);
+}
+.corner-box--full {
+  border: 1px solid var(--rule);
+}
+.corner-box--hover:hover::before,
+.corner-box--hover:hover::after {
+  border-color: var(--accent-ink);
 }
 
 /* ============================== 按钮 ============================== */
@@ -231,13 +281,14 @@ svg {
   gap: 0.5em;
   padding: 0.52em 1.05em;
   border: 1px solid var(--rule-2);
-  background: transparent;
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
+  background: rgba(255, 255, 255, 0.6);
   font-family: var(--serif);
   font-size: 0.94rem;
   letter-spacing: 0.02em;
   color: var(--ink);
   transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease,
-    transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.22s ease;
+    transform 0.22s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.22s ease, border-radius 0.22s ease;
 }
 .btn:hover {
   background: var(--accent-3);
@@ -245,6 +296,7 @@ svg {
   color: var(--accent-ink);
   transform: translateY(-1px);
   box-shadow: var(--shadow-s);
+  border-radius: var(--r-md) 0 var(--r-md) 0;
 }
 .btn:active {
   transform: translateY(0);
@@ -275,7 +327,7 @@ svg {
   box-shadow: none;
 }
 
-/* 文字按钮（导航 / 页脚用，悬停出现淡绿下划线与游标） */
+/* 文字按钮（导航 / 页脚用） */
 .linkbtn {
   position: relative;
   display: inline-flex;
@@ -293,6 +345,7 @@ svg {
   right: 0;
   bottom: -2px;
   height: 2px;
+  border-radius: var(--r-pill);
   background: var(--accent);
   transform: scaleX(0);
   transform-origin: left;
@@ -317,6 +370,7 @@ svg {
 :where(button, a, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
+  border-radius: var(--r-xs);
 }
 
 /* 标签 / 印章 */
@@ -326,6 +380,7 @@ svg {
   gap: 0.36em;
   padding: 0.14em 0.6em;
   border: 1px solid var(--rule-2);
+  border-radius: var(--r-pill);
   font-family: var(--mono);
   font-size: 0.66rem;
   letter-spacing: 0.18em;
@@ -333,7 +388,7 @@ svg {
   color: var(--ink-3);
 }
 .tag--accent {
-  border-color: var(--accent-ink);
+  border-color: var(--accent-2);
   background: var(--accent-3);
   color: var(--accent-ink);
 }
@@ -342,34 +397,58 @@ svg {
   display: inline-block;
   padding: 0.3em 0.7em;
   border: 2px solid var(--accent-ink);
+  border-radius: var(--r-sm);
   color: var(--accent-ink);
   font-family: var(--mono);
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   transform: rotate(-4deg);
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
-/* 纸张卡片 */
+/* 纸张卡片（角标语言） */
 .paper-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)),
+  position: relative;
+  border-radius: 0 var(--r-md) 0 var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.46)),
     var(--paper-2);
-  border: 1px solid var(--rule);
   box-shadow: var(--shadow-s);
+}
+.paper-card::before,
+.paper-card::after {
+  content: "";
+  position: absolute;
+  width: var(--corner);
+  height: var(--corner);
+  pointer-events: none;
+  border: 0 solid var(--rule-2);
+}
+.paper-card::before {
+  top: 0;
+  right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+  border-top-right-radius: var(--r-md);
+}
+.paper-card::after {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+  border-bottom-left-radius: var(--r-md);
 }
 
 /* 半调网点装饰 */
 .halftone {
-  background-image: radial-gradient(rgba(22, 19, 14, 0.34) 1px, transparent 1.2px);
+  background-image: radial-gradient(rgba(29, 26, 22, 0.26) 1px, transparent 1.2px);
   background-size: 6px 6px;
 }
 .halftone--accent {
-  background-image: radial-gradient(rgba(61, 107, 43, 0.5) 1px, transparent 1.2px);
+  background-image: radial-gradient(rgba(77, 122, 55, 0.42) 1px, transparent 1.2px);
   background-size: 6px 6px;
 }
 
-/* 屏幕阅读器可见性 */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -382,7 +461,7 @@ svg {
   border: 0;
 }
 
-/* 进入视口的浮现动画（IntersectionObserver 驱动） */
+/* 进入视口的浮现动画 */
 .reveal {
   opacity: 0;
   transform: translateY(18px);

@@ -115,9 +115,11 @@ function useSuggestion(text) {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)), var(--paper-2);
-  border: 1px solid var(--rule-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5)), var(--paper-2);
+  border: 1px solid var(--rule);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
   box-shadow: var(--shadow-m);
+  overflow: hidden;
 }
 
 /* 头部 */
@@ -133,7 +135,8 @@ function useSuggestion(text) {
   place-items: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--accent-ink);
+  border: 1px solid var(--accent-2);
+  border-radius: 0 var(--r-sm) 0 var(--r-sm);
   background: var(--accent-3);
   color: var(--accent-ink);
   flex: none;
@@ -207,9 +210,10 @@ function useSuggestion(text) {
   justify-items: end;
 }
 .msg__bubble {
-  padding: 8px 10px;
-  border: 1px solid var(--rule-2);
-  background: var(--paper);
+  padding: 8px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md) var(--r-md) var(--r-md) 0;
+  background: var(--surface);
   font-size: 0.84rem;
   line-height: 1.65;
   color: var(--ink-2);
@@ -218,6 +222,7 @@ function useSuggestion(text) {
   border-left: 3px solid var(--accent);
 }
 .msg--user .msg__bubble {
+  border-radius: var(--r-md) var(--r-md) 0 var(--r-md);
   background: var(--accent-3);
   border-color: var(--accent-2);
   color: var(--ink);
@@ -243,8 +248,9 @@ function useSuggestion(text) {
   padding: 0 12px 10px;
 }
 .chip {
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: 1px dashed var(--rule-2);
+  border-radius: var(--r-pill);
   font-size: 0.72rem;
   color: var(--ink-3);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
@@ -267,9 +273,10 @@ function useSuggestion(text) {
 .chat__input {
   width: 100%;
   resize: none;
-  padding: 8px 10px;
-  border: 1px solid var(--rule-2);
-  background: var(--paper);
+  padding: 8px 11px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
+  background: var(--surface);
   font-family: var(--serif);
   font-size: 0.84rem;
   line-height: 1.6;
@@ -296,8 +303,9 @@ function useSuggestion(text) {
   align-items: center;
   gap: 6px;
   margin-top: 8px;
-  padding: 6px 8px;
-  border: 1px solid var(--accent-ink);
+  padding: 6px 10px;
+  border: 1px solid var(--accent-2);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
   background: var(--accent-3);
   color: var(--accent-ink);
   font-size: 0.76rem;

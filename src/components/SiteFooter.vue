@@ -36,7 +36,7 @@ const year = new Date().getFullYear()
         <div class="topbar__contact">
           <p class="mono topbar__cl">销售与技术支持</p>
           <p class="topbar__tel">400-000-1998</p>
-          <p class="mono topbar__addr">江苏省常熟市高新产业园 2 号</p>
+          <p class="mono topbar__addr">浙江省嘉兴市平湖经济技术开发区 2 号</p>
         </div>
       </div>
 
@@ -77,7 +77,7 @@ const year = new Date().getFullYear()
 
       <!-- 底部信息 -->
       <div class="bottom">
-        <p class="bottom__copy mono">© {{ year }} 精工图谱 · 常熟二厂 ｜ 苏 ICP 备 0000000 号</p>
+        <p class="bottom__copy mono">© {{ year }} 精工图谱 · 平湖工厂 ｜ 浙 ICP 备 0000000 号</p>
         <div class="bottom__links">
           <button v-for="l in footerLegal" :key="l" class="linkbtn bottom__link" type="button">
             {{ l }}
@@ -122,7 +122,8 @@ const year = new Date().getFullYear()
   width: 48px;
   height: 48px;
   border: 1px solid var(--rule-2);
-  background: var(--paper);
+  border-radius: 0 var(--r-sm) 0 var(--r-sm);
+  background: var(--surface);
   transition: color 0.3s ease, border-color 0.3s ease, transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 .topbar__brand:hover .topbar__mark {
@@ -152,9 +153,10 @@ const year = new Date().getFullYear()
 .subscribe__input {
   flex: 1;
   min-width: 0;
-  padding: 7px 10px;
-  border: 1px solid var(--rule-2);
-  background: var(--paper);
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-pill);
+  background: var(--surface);
   font-family: var(--mono);
   font-size: 0.78rem;
   color: var(--ink);
@@ -225,6 +227,7 @@ const year = new Date().getFullYear()
   width: 34px;
   height: 34px;
   border: 1px solid var(--rule-2);
+  border-radius: 0 var(--r-sm) 0 var(--r-sm);
   color: var(--ink-2);
   transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease, transform 0.22s ease;
 }

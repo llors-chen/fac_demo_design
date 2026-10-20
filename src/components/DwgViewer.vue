@@ -441,8 +441,10 @@ defineExpose({ fit, zoomBy })
   display: flex;
   flex-direction: column;
   background: var(--paper-2);
-  border: 1px solid var(--rule-2);
+  border: 1px solid var(--rule);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
   box-shadow: var(--shadow-m);
+  overflow: hidden;
   min-height: 0;
 }
 
@@ -465,6 +467,7 @@ defineExpose({ fit, zoomBy })
   color: var(--ink-3);
   border: 1px solid transparent;
   border-bottom: none;
+  border-radius: var(--r-sm) var(--r-sm) 0 0;
   white-space: nowrap;
   transition: background 0.2s ease, color 0.2s ease;
 }
@@ -516,6 +519,7 @@ defineExpose({ fit, zoomBy })
   width: 30px;
   height: 30px;
   border: 1px solid transparent;
+  border-radius: var(--r-xs) var(--r-xs) var(--r-xs) var(--r-xs);
   color: var(--ink-2);
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
@@ -655,7 +659,8 @@ defineExpose({ fit, zoomBy })
   width: 172px;
   padding: 10px 12px 8px;
   background: color-mix(in srgb, var(--paper) 94%, #fff);
-  border: 1px solid var(--rule-2);
+  border: 1px solid var(--rule);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
   box-shadow: var(--shadow-m);
 }
 .layerpanel__title {
@@ -709,8 +714,9 @@ defineExpose({ fit, zoomBy })
 }
 .loader__track {
   width: 190px;
-  height: 3px;
+  height: 4px;
   background: var(--paper-4);
+  border-radius: var(--r-pill);
   overflow: hidden;
 }
 .loader__track span {
@@ -758,9 +764,10 @@ defineExpose({ fit, zoomBy })
 .overlay--tip {
   top: 10px;
   left: 12px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   background: var(--accent-3);
-  border: 1px solid var(--accent-ink);
+  border: 1px solid var(--accent-2);
+  border-radius: var(--r-pill);
   color: var(--accent-ink);
   font-size: 0.56rem;
 }

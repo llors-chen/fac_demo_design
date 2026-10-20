@@ -40,7 +40,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <div class="wrap strip__in">
         <span class="mono strip__date">{{ today }}</span>
         <span class="strip__dot" aria-hidden="true"></span>
-        <span class="mono strip__issue">第 001 期 · 设计成果特辑</span>
+        <span class="mono strip__issue">精工图谱 · 平湖工厂 ｜ 第 001 期 · 设计成果特辑</span>
         <div class="strip__right">
           <button class="linkbtn strip__link" type="button">供应商门户</button>
           <button class="linkbtn strip__link" type="button">
@@ -64,14 +64,14 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
           </span>
           <div class="brand__text">
             <h1 class="brand__name">精工图谱</h1>
-            <p class="brand__tag">工业制造 · 设计成果在线图纸库</p>
+            <p class="brand__tag">平湖工厂 · 工业制造与设计成果在线图纸库</p>
           </div>
         </div>
 
         <div class="brand__side">
           <dl class="fact">
             <div><dt class="mono">创刊</dt><dd>1998</dd></div>
-            <div><dt class="mono">厂区</dt><dd>苏州 · 常熟</dd></div>
+            <div><dt class="mono">厂区</dt><dd>浙江 · 平湖</dd></div>
             <div><dt class="mono">在库图纸</dt><dd>12,480</dd></div>
           </dl>
           <form class="searchbar" @submit.prevent>
@@ -224,8 +224,9 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   width: 62px;
   height: 62px;
   border: 1px solid var(--rule-2);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
   color: var(--ink);
-  background: var(--paper);
+  background: var(--surface);
   box-shadow: var(--shadow-s);
   transition: color 0.3s ease, border-color 0.3s ease, transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
@@ -273,9 +274,10 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 6px 6px 12px;
-  border: 1px solid var(--rule-2);
-  background: var(--paper);
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--surface);
   min-width: min(360px, 74vw);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
@@ -371,6 +373,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   margin-left: auto;
   padding: 8px;
   border: 1px solid var(--rule-2);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
 }
 
 /* 移动端抽屉 */
@@ -386,8 +389,9 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 .drawer__item {
   justify-content: flex-start;
-  padding: 11px 4px;
+  padding: 11px 6px;
   border-bottom: 1px dashed var(--rule);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
   font-size: 1rem;
 }
 .drawer__chev {
