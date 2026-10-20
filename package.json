@@ -1,0 +1,23 @@
+{
+  "name": "nyonic-industrial-home",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "工业制造企业官网首页 · 设计成果图纸在线浏览（Vue 3 + Vite）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "smoke": "node scripts/build-smoke.mjs && node dist-smoke/smoke.js",
+    "check:static": "node scripts/check-static.mjs"
+  },
+  "dependencies": {
+    "animejs": "^4.5.0",
+    "vue": "^3.5.44"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.10",
+    "jsdom": "^29.1.1",
+    "vite": "^8.3.4"
+  }
+}
