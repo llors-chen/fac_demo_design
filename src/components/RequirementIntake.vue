@@ -11,9 +11,10 @@ import AppIcon from './AppIcon.vue'
 import {
   attachmentPoints,
   attachments,
-  intakeDefaults,
+  intakeMeta,
   intakeSample,
   intakeSteps,
+  intakeTemplate,
 } from '../data/site.js'
 
 /** 附件类型 → 线性图标 */
@@ -38,15 +39,17 @@ const nowTime = () => {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/** 从口语文本里尽量提取关键信息，提取不到则用默认值 */
-const fields = computed(() => {
+/**
+ * 按模板分类整理：1 Project introduction / 2 Application information / 3 Specifications(3.1~3.5)
+ * 能从口语文本里提取到的项用提取值，提取不到用模板默认值。
+ */
+const sections = computed(() => {
   const t = raw.value || ''
-  const d = intakeDefaults
-  const grab = (re, fallback) => {
-    const m = t.match(re)
-    return m ? m[0].trim().replace(/\s+/g, ' ') : fallback
+  const all = (re) => {
+    const g = re.global ? re : new RegExp(re.source, re.flags + 'g')
+    return [...t.matchAll(g)].map((m) => m[0].trim().replace(/\s+/g, ' '))
   }
-  const all = (re) => [...t.matchAll(re)].map((m) => m[0].trim())
+  const first = (re, fallback) => all(re)[0] || fallback
 
   const kinds = ['法兰盘', '端盖', '轴承座', '轴套', '齿轮', '传动轴', '密封垫', '平键', '螺栓']
   const kind = kinds.find((k) => t.includes(k))
@@ -56,24 +59,31 @@ const fields = computed(() => {
   const conds = all(/(?:温度|℃|度上下|转速|转以内|脂润滑|油润滑|连续跑|连续工作)[^，。；;\n]{0,12}/g)
   const accept = all(/(?:材质证明|证明|国标|GB\/T\s?\d+|外观|毛刺|复检|探伤)[^，。；;\n]{0,10}/g)
   const customer = t.match(/【(.+?)】/)?.[1]
+  const holes = t.match(/(\d+)\s*(?:个)?\s*孔[^，。；;\n]{0,8}/)
 
-  return [
-    { label: '需求单编号', value: d.no, mono: true },
-    { label: '客户 / 来源', value: customer ? customer.replace(/·/g, ' · ').trim() : d.customer },
-    { label: '项目 / 用途', value: d.project },
-    {
-      label: '产品',
-      value: kind ? `${kind}${specs[0] && /^DN|^⌀/.test(specs[0]) ? ' ' + specs[0] : ''}` : d.product,
-    },
-    { label: '规格要求', value: specs.length ? `${specs.join(' / ')}${specs.length < 2 ? '；' + d.spec : ''}` : d.spec },
-    { label: '数量', value: qtys.length ? qtys.join('；') : d.qty },
-    { label: '交期', value: dels.length ? dels.join('；') : d.delivery },
-    { label: '工况条件', value: conds.length ? conds.slice(0, 3).join('，') : d.condition },
-    { label: '验收要求', value: accept.length ? accept.slice(0, 3).join('，') : d.acceptance },
-    { label: '风险提示', value: d.risk, accent: true },
-  ]
+  const override = {
+    customer: customer ? customer.replace(/·/g, ' · ').trim() : null,
+    condition: conds.length ? conds.slice(0, 3).join('，') : null,
+    qty: qtys.length ? qtys.join('；') : null,
+    delivery: dels.length ? dels.join('；') : null,
+    interface: specs.length
+      ? `${kind ? kind + ' ' : ''}${specs.join(' / ')}${holes ? `；${holes[0]}` : ''}${specs.length < 2 ? '；对接面尺寸以客户图纸为准' : ''}`
+      : null,
+    tests: accept.length ? accept.slice(0, 3).join('，') : null,
+    certification: first(/GB\/T\s?\d+[^\s，。；]*/, null),
+  }
+
+  return intakeTemplate.map((sec) => ({
+    ...sec,
+    items: sec.items.map((it) => ({
+      ...it,
+      value: (it.from && override[it.from]) || it.value,
+      extracted: !!(it.from && override[it.from]),
+    })),
+  }))
 })
 
+const fieldCount = computed(() => sections.value.reduce((s, sec) => s + sec.items.length, 0))
 const charCount = computed(() => raw.value.length)
 
 function run() {
@@ -186,8 +196,9 @@ onBeforeUnmount(() => window.clearTimeout(timer))
               <div class="msg msg--bot">
                 <div class="msg__bubble">
                   <p>
-                    已把这段口语记录整理为书面需求，共 {{ fields.length }} 项字段；
-                    其中规格、数量、交期、工况均按原文提取，未提及项已标注为待确认。
+                    已把这段口语记录按模板整理为书面需求：3 个分类、共 {{ fieldCount }} 项；
+                    其中规格、数量、交期、工况等按原文提取（带 <em class="msg__mark">已提取</em> 标记），
+                    未提及项沿用模板默认值。
                   </p>
                 </div>
                 <span class="msg__time mono">需求整理助手 · {{ lastRun }}</span>
@@ -196,15 +207,36 @@ onBeforeUnmount(() => window.clearTimeout(timer))
               <div class="req">
                 <header class="req__head">
                   <span class="req__badge mono">书面需求</span>
-                  <span class="req__no mono">{{ fields[0].value }}</span>
-                  <span class="req__state mono">待研发对齐</span>
+                  <span class="req__no mono">{{ intakeMeta.no }}</span>
+                  <span class="req__state mono">{{ intakeMeta.state }}</span>
                 </header>
-                <dl class="req__body">
-                  <div v-for="f in fields.slice(1)" :key="f.label" class="req__row">
-                    <dt class="mono">{{ f.label }}</dt>
-                    <dd :class="{ 'is-accent': f.accent }">{{ f.value }}</dd>
-                  </div>
-                </dl>
+
+                <section v-for="sec in sections" :key="sec.no" class="req__sec">
+                  <h5 class="req__sec-title">
+                    <span class="req__sec-no mono">{{ sec.no }}</span>
+                    <span class="req__sec-en">{{ sec.title }}</span>
+                    <span class="req__sec-zh">{{ sec.zh }}</span>
+                  </h5>
+                  <dl class="req__body">
+                    <div v-for="it in sec.items" :key="it.key" class="req__row">
+                      <dt class="mono">
+                        <span v-if="it.no" class="req__item-no">{{ it.no }}</span>
+                        {{ it.label || it.title }}
+                        <em v-if="it.title" class="req__item-en">{{ it.title }}</em>
+                      </dt>
+                      <dd>
+                        {{ it.value }}
+                        <em v-if="it.extracted" class="req__flag mono">已提取</em>
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <div class="req__risk">
+                  <AppIcon name="info" :size="13" />
+                  <span><b class="mono">风险 / 待确认</b>{{ intakeMeta.risk }}</span>
+                </div>
+
                 <footer class="req__foot">
                   <button class="btn btn--sm" type="button">
                     <AppIcon name="download" :size="13" />
@@ -212,9 +244,9 @@ onBeforeUnmount(() => window.clearTimeout(timer))
                   </button>
                   <button class="btn btn--sm" type="button">
                     <AppIcon name="send" :size="13" />
-                    转研发对齐
+                    转产品目录检索
                   </button>
-                  <span class="req__hint mono">下一步：第 02 区 销售 &amp; 研发需求对齐</span>
+                  <span class="req__hint mono">下一步：第 02 区 检索产品目录 · 图纸与 BOM</span>
                 </footer>
               </div>
             </template>
@@ -536,15 +568,50 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   color: var(--accent-ink);
   font-size: 0.5rem;
 }
+.req__sec {
+  padding: 10px 12px 2px;
+}
+.req__sec + .req__sec {
+  border-top: 1px dashed var(--rule);
+}
+.req__sec-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+}
+.req__sec-no {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.56rem;
+}
+.req__sec-en {
+  color: var(--ink);
+}
+.req__sec-zh {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ink-3);
+}
 .req__body {
   margin: 0;
-  padding: 4px 12px 10px;
+  padding: 0;
 }
 .req__row {
   display: grid;
-  grid-template-columns: 7.4em minmax(0, 1fr);
+  grid-template-columns: 8.6em minmax(0, 1fr);
   gap: 10px;
-  padding: 7px 0;
+  padding: 6px 0;
   border-bottom: 1px dotted var(--rule);
 }
 .req__row:last-child {
@@ -553,6 +620,19 @@ onBeforeUnmount(() => window.clearTimeout(timer))
 .req__row dt {
   font-size: 0.52rem;
   padding-top: 3px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.req__item-no {
+  font-size: 0.5rem;
+  color: var(--accent-ink);
+}
+.req__item-en {
+  font-size: 0.46rem;
+  font-style: normal;
+  color: var(--ink-4);
 }
 .req__row dd {
   margin: 0;
@@ -560,7 +640,38 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   line-height: 1.7;
   color: var(--ink-2);
 }
-.req__row dd.is-accent {
+.req__flag {
+  margin-left: 6px;
+  font-size: 0.44rem;
+  font-style: normal;
+  padding: 1px 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent-3);
+  color: var(--accent-ink);
+}
+.req__risk {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 12px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--accent-2);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
+  background: var(--accent-3);
+  color: var(--accent-ink);
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+.req__risk b {
+  margin-right: 6px;
+  font-size: 0.5rem;
+}
+.msg__mark {
+  font-style: normal;
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent-3);
   color: var(--accent-ink);
 }
 .req__foot {

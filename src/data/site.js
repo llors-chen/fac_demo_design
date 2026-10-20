@@ -32,26 +32,26 @@ export const processLog = [
   },
   {
     no: '02',
-    anchor: 'dwg-chat',
-    title: '历史图纸检索 · DWG 在线浏览与 BOM',
-    meta: '命中 3 张 · NY-FL-2026-008',
+    anchor: 'catalog-chat',
+    title: '产品目录检索 · 图纸与 BOM',
+    meta: '3 大类 / 6 个产品 / 4 个有图纸',
     status: '已上载 M3',
-    note: '基于销售信息检索历史图纸 → 在线看图（缩放 / 平移 / 图层 / 测量）→ 提取 BOM → 上载 M3',
+    note: '两个分支：① 产品目录匹配（大分类 → 小分类产品 → 有图纸才展开看图与 BOM）；② 客制化目标匹配（历史零件组装与规格对比）',
     times: [
-      { label: '提交检索并打开图纸', time: '10:52' },
+      { label: '提交检索并定位产品', time: '10:52' },
       { label: 'BOM 上载 M3', time: '11:03' },
     ],
   },
   {
     no: '03',
-    anchor: 'compare',
-    title: '需求分析 · 历史可能性展示 · 组装交互',
-    meta: '20 类 / 100 个历史规格',
+    anchor: 'quote-chat',
+    title: '销售端 · 回馈与报价',
+    meta: '含税 ￥35,030 · 样件 10 天',
     status: '进行中',
-    note: '对话式需求分析 → 调用工具：历史规格对比 + 拖动组装',
+    note: '汇总匹配结果 → 报价明细（数量档位 / 折扣 / 税）+ 预估交期甘特 + 前提与风险 + 转客户话术',
     times: [
-      { label: '检索历史规格', time: '11:10' },
-      { label: '组装方案比对', time: '11:32' },
+      { label: '生成报价与交期', time: '11:10' },
+      { label: '销售回馈客户', time: '11:32' },
     ],
   },
 ]
@@ -117,60 +117,231 @@ export const attachmentPoints = [
   '渗油发生在原法兰密封面外侧（来自 渗油部位照片.jpg）',
 ]
 
-/** 第 02 区：历史图纸检索（chatbot 外壳 + 工具） */
-export const drawingChat = {
-  name: '图纸检索助手',
-  role: 'Drawing Finder',
+/** 第 02 区：产品目录检索（chatbot 外壳 + 工具） */
+export const catalogChat = {
+  name: '产品目录检索助手',
+  role: 'Catalog Finder',
   greeting:
-    '你好，我可以基于销售整理出的需求（含客户附件信息）检索历史图纸库，并把命中的 DWG 图面与 BOM 展开给你看。',
-  preInput: '基于销售的信息检索历史图纸并展示 dwg 信息',
-  toolId: 'history_drawing_search',
-  toolName: '历史图纸检索 · DWG 在线浏览与 BOM',
+    '你好，我可以基于销售整理出的需求（含客户附件要点）检索产品目录：先定位大分类，再收敛到具体产品；命中产品若有图纸 / BOM，会一并展开。',
+  preInput: '基于销售的信息检索产品目录，匹配可能的产品并展示图纸 / BOM 信息',
+  toolId: 'product_catalog_search',
+  toolName: '产品目录检索 · 图纸与 BOM',
   reply: (q) =>
-    `已按「${q}」检索历史图纸库：命中 3 张相似图纸（最高相似度 96%），已打开最匹配的一张，下方可直接看图、提取 BOM 并上载至 M3。`,
+    `已按「${q}」检索产品目录：命中 2 个大分类、6 个具体产品，其中 4 个产品有图纸 / BOM，已展开最匹配的「平焊法兰 DN160」。`,
   suggestions: [
-    '基于销售的信息检索历史图纸并展示 dwg 信息',
-    '找 DN160 法兰盘的历史版本，看密封面改过没有',
-    '有没有配 ⌀40 轴、8 孔均布的老图可以直接借用',
+    '基于销售的信息检索产品目录，匹配可能的产品并展示图纸 / BOM 信息',
+    'DN160 法兰盘有没有现货，交期多久',
+    '目录里没有完全匹配的，走客制化目标匹配',
   ],
 }
 
-/** 第 02 区：检索命中的历史图纸 */
-export const drawingHits = [
+/** 第 02 区：产品目录（大分类 → 小分类产品；部分产品有图纸 / BOM） */
+export const catalogGroups = [
   {
-    id: 'doc-a',
-    file: '法兰盘装配图.dwg',
-    code: 'NY-FL-2026-008',
-    sheet: 'A2 · 1:2',
-    rev: 'V3',
-    score: 96,
-    date: '2026-02-20',
-    why: 'DN160 / ⌀40 轴 / 8×⌀13 均布 全部匹配',
-    suffix: '021',
+    key: 'flange',
+    name: '法兰连接件',
+    en: 'Flange connections',
+    icon: 'grid',
+    match: 96,
+    products: [
+      {
+        id: 'p-ff-160',
+        name: '平焊法兰 DN160',
+        code: 'NY-FF-160',
+        spec: 'DN160 · 厚 32 · A 型',
+        material: 'Q235B',
+        match: 96,
+        stock: '现货 120 件',
+        lead: '3 天',
+        why: 'DN160 / ⌀40 轴 / 8×⌀13 均布 全部匹配；对接面形式与客户图纸一致',
+        dwg: {
+          file: '法兰盘装配图.dwg',
+          code: 'NY-FL-2026-008',
+          sheet: 'A2 · 1:2',
+          rev: 'V3',
+          suffix: '021',
+          bom: 'dwgBom',
+        },
+      },
+      {
+        id: 'p-fw-160',
+        name: '对焊法兰 DN160',
+        code: 'NY-FW-160',
+        spec: 'DN160 · 厚 32 · B 型',
+        material: '16Mn',
+        match: 91,
+        stock: '现货 46 件',
+        lead: '5 天',
+        why: 'DN160 匹配；对焊结构强度更高，需确认对接面坡口',
+        dwg: {
+          file: '法兰盘对焊装配图.dwg',
+          code: 'NY-FL-2025-042',
+          sheet: 'A2 · 1:2',
+          rev: 'V2',
+          suffix: '019',
+          bom: 'dwgBom',
+        },
+      },
+      {
+        id: 'p-fn-160',
+        name: '带颈法兰 DN160',
+        code: 'NY-FN-160',
+        spec: 'DN160 · 厚 32 · C 型',
+        material: '20 钢',
+        match: 84,
+        stock: '按单生产',
+        lead: '12 天',
+        why: 'DN160 匹配，带颈加强；无现成图纸，需出图',
+      },
+    ],
   },
   {
-    id: 'doc-b',
-    file: '法兰盘装配图-旧.dwg',
-    code: 'NY-FL-2024-031',
-    sheet: 'A2 · 1:2',
-    rev: 'V1',
-    score: 88,
-    date: '2024-08-14',
-    why: 'DN160 匹配，孔数为 6×⌀13（需改制）',
-    suffix: '018',
+    key: 'seal',
+    name: '密封件',
+    en: 'Seals',
+    icon: 'layers',
+    match: 88,
+    products: [
+      {
+        id: 'p-se-160',
+        name: '端面密封垫 ⌀160',
+        code: 'NY-SE-160',
+        spec: '⌀160 / ⌀80 · 厚 2',
+        material: '耐油橡胶',
+        match: 88,
+        stock: '现货 300 件',
+        lead: '2 天',
+        why: '与 DN160 法兰端面配合，可直接替换原密封垫',
+      },
+      {
+        id: 'p-os-040',
+        name: '骨架油封 FB 40×62×8',
+        code: 'NY-OS-040',
+        spec: '40 × 62 × 8',
+        material: 'NBR + 弹簧',
+        match: 76,
+        stock: '现货 88 件',
+        lead: '4 天',
+        why: '配 ⌀40 轴；若渗油来自轴颈可一并更换',
+        dwg: {
+          file: '油封座装配图.dwg',
+          code: 'NY-OS-2024-007',
+          sheet: 'A3 · 1:1',
+          rev: 'V1',
+          suffix: '011',
+          bom: 'sealBom',
+        },
+      },
+    ],
   },
   {
-    id: 'doc-c',
-    file: '端盖装配图.dwg',
-    code: 'NY-CV-2025-012',
-    sheet: 'A2 · 1:1',
-    rev: 'V2',
-    score: 74,
-    date: '2025-05-06',
-    why: '同族端盖结构，可参考密封槽形式',
-    suffix: '012',
+    key: 'bearing',
+    name: '轴承支撑',
+    en: 'Bearing supports',
+    icon: 'building',
+    match: 72,
+    products: [
+      {
+        id: 'p-bs-120',
+        name: '立式轴承座 H1-120',
+        code: 'NY-BS-120',
+        spec: '中心高 120 · 配 6212',
+        material: '铸铁 HT200',
+        match: 72,
+        stock: '现货 18 件',
+        lead: '7 天',
+        why: '同族支撑结构；本次需求未明确要求，作为备选',
+        dwg: {
+          file: '轴承座装配图.dwg',
+          code: 'NY-BS-2026-003',
+          sheet: 'A2 · 1:1.5',
+          rev: 'V3',
+          suffix: '008',
+          bom: 'bearingBom',
+        },
+      },
+    ],
   },
 ]
+
+/** 各产品图纸对应的 BOM */
+/** 第 03 区：销售回馈与报价（chatbot 外壳 + 报价 / 交期工具） */
+export const quoteChat = {
+  name: '报价与交期助手',
+  role: 'Quote & Lead Time',
+  greeting:
+    '我可以把第 02 区的匹配结果（标准产品或客制化方案）汇总成一份给销售的回馈：报价明细、预估交期、前提与风险，可直接转客户。',
+  preInput: '汇总匹配结果，给销售回馈报价与预估交期',
+  toolId: 'quote_leadtime_eval',
+  toolName: '报价单 · 预估交期 · 风险提示',
+  reply: (q) =>
+    `已按「${q}」生成回馈：含税合计 ￥35,030（13% 税），预估样件 10 天、首批 30 天、专用工装 45 天；前提与风险见下方清单。`,
+  suggestions: [
+    '汇总匹配结果，给销售回馈报价与预估交期',
+    '客户要 200 件，含税总价多少',
+    '样件最快几天能给客户',
+  ],
+}
+
+/** 数量档位：影响折扣与首批交期 */
+export const quoteTiers = [
+  { qty: 200, label: '200 件', discount: 0, leadDelta: 0, note: '首批标准批量' },
+  { qty: 500, label: '500 件', discount: 0.05, leadDelta: 5, note: '≥500 件享 5% 折扣' },
+  { qty: 1000, label: '1000 件', discount: 0.08, leadDelta: 12, note: '≥1000 件享 8% 折扣' },
+]
+
+/** 报价明细（基础行，数量随档位变化） */
+export const quoteBaseItems = [
+  { no: '01', name: '平焊法兰 DN160', code: 'NY-FF-160', unit: '件', price: 86, tiered: true, note: '标准产品 · 材料现货' },
+  { no: '02', name: '端面密封垫 ⌀160', code: 'NY-SE-160', unit: '件', price: 6, tiered: true, note: '随法兰配套' },
+  { no: '03', name: '样件（手工分度）', code: 'NY-FF-160-S', unit: '件', qty: 5, price: 120, note: '先行验证，10 天交付' },
+  { no: '04', name: '专用分度工装', code: 'NY-JIG-160', unit: '套', qty: 1, price: 12000, note: '一次性 · 计入项目开发费' },
+]
+
+/** 交期预估（甘特：from 为起始天，days 为工期） */
+export const quoteTimeline = [
+  { key: 'dwg', label: '图纸与工艺确认', from: 0, days: 2, note: '含客户确认孔距与密封槽' },
+  { key: 'sample', label: '样件制作（手工分度）', from: 0, days: 10, note: '样件 5 件，可提前插单' },
+  { key: 'verify', label: '客户装机验证', from: 10, days: 5, note: '客户现场，可与工装并行' },
+  { key: 'jig', label: '专用分度工装设计与制造', from: 0, days: 45, note: '一次性投入，关键路径' },
+  { key: 'batch', label: '首批生产（工装到位后）', from: 45, days: 30, note: '含三坐标首件复检' },
+]
+
+export const quoteNotes = {
+  basis: [
+    '材料价格按 2026-10 月度价，有效期 30 天',
+    '工装费一次性计入项目开发费，不随数量摊销',
+    '样件手工分度；首批必须上专用工装',
+    '报价含 13% 增值税，运费按实际另计',
+  ],
+  risks: [
+    '对接面孔距未书面确认前不排产',
+    '8 孔均布首件需三坐标复检，可能追加 1~2 天',
+    '若客户接受 6 孔方案，可省去工装（-￥12,000 / -15 天）',
+  ],
+  feedback:
+    '客户您好：DN160 法兰盘方案已评估完成 —— 样件 5 件 10 天内交付，首批 200 件 30 天；因对接面为 8 孔均布，需新增一套专用分度工装（一次性 ￥12,000）。含税总价 ￥35,030，报价有效期 30 天。',
+}
+export const productBoms = {
+  dwgBom: [
+    { seq: '01', code: 'NY-FL-160', name: '法兰盘', spec: 'DN160', material: 'Q235B', qty: 1, unit: 4.6, total: 4.6 },
+    { seq: '02', code: 'NY-CV-140', name: '端盖', spec: '⌀140', material: 'HT200', qty: 1, unit: 2.1, total: 2.1 },
+    { seq: '03', code: 'NY-SE-160', name: '端面密封垫', spec: '⌀160 / ⌀80', material: '耐油橡胶', qty: 1, unit: 0.08, total: 0.08 },
+    { seq: '04', code: 'NY-KY-014', name: '平键', spec: '14×9', material: '45 钢', qty: 1, unit: 0.12, total: 0.12 },
+    { seq: '05', code: 'NY-FB-M12', name: '六角螺栓组', spec: 'M12×6', material: '8.8 级', qty: 8, unit: 0.04, total: 0.32 },
+  ],
+  sealBom: [
+    { seq: '01', code: 'NY-OS-040', name: '骨架油封', spec: 'FB 40×62×8', material: 'NBR', qty: 1, unit: 0.06, total: 0.06 },
+    { seq: '02', code: 'NY-SH-040', name: '油封座', spec: '⌀62 / ⌀40', material: 'HT200', qty: 1, unit: 0.42, total: 0.42 },
+    { seq: '03', code: 'NY-SR-040', name: '弹簧挡圈', spec: '⌀40', material: '65Mn', qty: 1, unit: 0.02, total: 0.02 },
+  ],
+  bearingBom: [
+    { seq: '01', code: 'NY-BS-120', name: '立式轴承座', spec: 'H1-120', material: 'HT200', qty: 1, unit: 7.4, total: 7.4 },
+    { seq: '02', code: 'NY-BR-6212', name: '深沟球轴承', spec: '6212', material: 'GCr15', qty: 1, unit: 0.78, total: 0.78 },
+    { seq: '03', code: 'NY-OC-120', name: '油杯', spec: 'M10×1', material: '黄铜', qty: 1, unit: 0.05, total: 0.05 },
+    { seq: '04', code: 'NY-FB-M16', name: '地脚螺栓组', spec: 'M16×4', material: '8.8 级', qty: 4, unit: 0.09, total: 0.36 },
+  ],
+}
 /** 第 01 区：销售端样例输入（口语化原始记录，可编辑） */
 export const intakeSample = [
   '【平湖 · 新能源客户 王工 · 微信】09:12',
@@ -188,22 +359,82 @@ export const intakeSteps = [
   '生成书面需求单',
 ]
 
-/** 第 01 区：书面需求默认字段（未从文本中提取到时使用） */
-export const intakeDefaults = {
+/** 第 01 区：书面需求模板（按 Project introduction / Application information / Specifications 分类） */
+export const intakeMeta = {
   no: 'REQ-20261020-007',
-  customer: '平湖 · 新能源客户（王工）',
-  project: 'E-Mobility 电驱总成 · 法兰盘换型',
-  product: '法兰盘 DN160（平焊型）',
-  spec: '配 ⌀40 轴，8×⌀13 通孔均布；对接面尺寸以客户图纸为准',
-  qty: '样件 5 件；首批 200 件',
-  delivery: '样件 7 天；首批 25 天',
-  condition: '连续工作 80 ℃，转速 ≤ 3000 r/min，脂润滑',
-  acceptance: '尺寸按 GB/T 1804-m，外观无毛刺，附材质证明',
-  risk: '对接面孔距需客户确认；8 孔均布需专用分度工装',
+  state: '待研发对接',
+  risk: '对接面孔距需客户书面确认；8 孔均布需专用分度工装；密封槽尺寸未确认前不得开模',
 }
 
-
-/** 头版数据栏 */
+export const intakeTemplate = [
+  {
+    no: '1',
+    title: 'Project introduction',
+    zh: '项目介绍',
+    items: [
+      { key: 'customer', label: '客户 / 来源', value: '平湖 · 新能源客户（王工）', from: 'customer' },
+      { key: 'project', label: '项目 / 用途', value: 'E-Mobility 电驱总成 · 法兰盘换型' },
+      { key: 'background', label: '背景', value: '原法兰密封面渗油，客户要求换型并保证对接面互换' },
+      { key: 'goal', label: '目标', value: '消除渗油；对接面 8 孔尺寸不变；样件先行验证' },
+    ],
+  },
+  {
+    no: '2',
+    title: 'Application information',
+    zh: '应用信息',
+    items: [
+      { key: 'scene', label: '应用场景', value: '电驱总成输出端法兰连接（连续运转）' },
+      { key: 'condition', label: '工况条件', value: '连续工作 80 ℃，转速 ≤ 3000 r/min，脂润滑', from: 'condition' },
+      { key: 'qty', label: '数量', value: '样件 5 件；首批 200 件', from: 'qty' },
+      { key: 'delivery', label: '交期要求', value: '样件 7 天；首批 25 天', from: 'delivery' },
+    ],
+  },
+  {
+    no: '3',
+    title: 'Specifications',
+    zh: '规格',
+    items: [
+      {
+        no: '3.1',
+        key: 'performance',
+        title: 'Performance',
+        zh: '性能',
+        value: '传递转矩 ≥ 320 N·m；密封等级 IP65；设计寿命 ≥ 8000 h',
+      },
+      {
+        no: '3.2',
+        key: 'functions',
+        title: 'Functions',
+        zh: '功能',
+        value: '法兰连接 + 端面密封 + 8 孔定位；可拆装维护',
+      },
+      {
+        no: '3.3',
+        key: 'interface',
+        title: 'Installation interface',
+        zh: '安装接口',
+        value: '配 ⌀40 轴，8×⌀13 通孔均布，对接面尺寸以客户图纸为准',
+        from: 'interface',
+      },
+      {
+        no: '3.4',
+        key: 'tests',
+        title: 'Tests',
+        zh: '测试',
+        value: '气密试验 0.6 MPa / 5 min；三坐标复检；动平衡 G6.3',
+        from: 'tests',
+      },
+      {
+        no: '3.5',
+        key: 'certification',
+        title: 'Certification',
+        zh: '认证',
+        value: '材质证明；尺寸按 GB/T 1804-m；IATF 16949 过程文件',
+        from: 'certification',
+      },
+    ],
+  },
+]
 export const frontStats = [
   { value: '12,480', unit: '张', label: '在库设计图纸' },
   { value: '36', unit: '类', label: '样品解决方案' },
@@ -416,13 +647,3 @@ export const analystChat = {
     '轴套想从铜合金换成双金属，有历史规格吗',
   ],
 }
-
-/** DWG 在线浏览（法兰盘装配图）从图面明细栏提取的 BOM */
-export const dwgBom = [
-  { seq: '01', code: 'NY-FL-160', name: '法兰盘', spec: 'DN160', material: 'Q235B', qty: 1, unit: 4.6, total: 4.6 },
-  { seq: '02', code: 'NY-CV-140', name: '端盖', spec: '⌀140', material: 'HT200', qty: 1, unit: 2.1, total: 2.1 },
-  { seq: '03', code: 'NY-BS-120', name: '轴承座', spec: 'H1-120', material: 'HT200', qty: 1, unit: 7.4, total: 7.4 },
-  { seq: '04', code: 'NY-SE-080', name: '密封垫', spec: '⌀80', material: '耐油橡胶', qty: 2, unit: 0.06, total: 0.12 },
-  { seq: '05', code: 'NY-KY-014', name: '平键', spec: '14×9', material: '45 钢', qty: 1, unit: 0.12, total: 0.12 },
-  { seq: '06', code: 'NY-FB-M12', name: '六角螺栓组', spec: 'M12×6', material: '8.8 级', qty: 8, unit: 0.04, total: 0.32 },
-]

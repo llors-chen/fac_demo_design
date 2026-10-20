@@ -2,15 +2,15 @@
 /**
  * 首页装配：三段式
  *   ① 报头 + 导航条（SiteHeader）
- *   ② 主体：01 需求整理（含客户附件）→ 02 图纸检索 chatbot（DWG + 提取 BOM）→ 03 需求分析与组装交互
+ *   ② 主体：01 需求整理（含客户附件）→ 02 产品目录检索 chatbot（产品目录 / 客制化两个分支）→ 03 销售回馈与报价
  *   ③ 页脚（SiteFooter）
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './components/AppIcon.vue'
-import DrawingChat from './components/DrawingChat.vue'
+import ProductCatalogChat from './components/ProductCatalogChat.vue'
 import RequirementIntake from './components/RequirementIntake.vue'
 import LeadStory from './components/LeadStory.vue'
-import PartCompare from './components/PartCompare.vue'
+import SalesQuoteChat from './components/SalesQuoteChat.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import SiteHeader from './components/SiteHeader.vue'
 import { usePageProgress } from './composables/useScrollProgress.js'
@@ -42,10 +42,10 @@ const percent = computed(() => Math.round(progress.value * 100))
     <!-- 01 销售端 · 客需需求整理 -->
     <RequirementIntake />
 
-    <!-- 02 历史图纸检索 · DWG 在线浏览与 BOM（chatbot 工具） -->
-    <DrawingChat />
-    <!-- 04 需求分析 · 历史可能性展示 · 组装交互（3 : 1） -->
-    <PartCompare />
+    <!-- 02 产品目录检索 · 图纸与 BOM（chatbot 工具） -->
+    <ProductCatalogChat />
+    <!-- 03 销售端 · 回馈与报价（chatbot 工具） -->
+    <SalesQuoteChat />
 
     <!-- 收尾条 -->
     <section class="outro">
