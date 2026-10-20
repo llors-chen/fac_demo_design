@@ -16,37 +16,192 @@ export const navSecondary = [
   { key: 'contact', label: '联系我们', icon: 'pin' },
 ]
 
-/** 头版导读：三段式主体中的三份图纸 */
-export const sheetIndex = [
+/** 头版：流程时间记录（每一步的样例时间与状态） */
+export const processLog = [
   {
     no: '01',
-    anchor: 'sheet-01',
-    title: '行星齿轮减速箱 · 总装图',
-    meta: 'NY-JS-2026-001 / 1:2',
-    note: '轮廓、中心线、剖面与明细逐层生成',
+    anchor: 'req-intake',
+    title: '销售端 · 客需需求整理',
+    meta: '需求单 REQ-20261020-007',
+    status: '已完成',
+    note: '客户口语记录 + 5 个客户附件 → 结构化书面需求（产品 / 规格 / 数量 / 交期 / 工况 / 验收 / 风险）',
+    times: [
+      { label: '收到客户微信记录与附件', time: '09:12' },
+      { label: '整理为书面需求单', time: '09:26' },
+    ],
   },
   {
     no: '02',
-    anchor: 'sheet-02',
-    title: '传动轴 · 零件图',
-    meta: 'NY-ZC-2026-014 / 1:1.5',
-    note: '尺寸链、粗糙度与形位公差依次落笔',
+    anchor: 'dwg-chat',
+    title: '历史图纸检索 · DWG 在线浏览与 BOM',
+    meta: '命中 3 张 · NY-FL-2026-008',
+    status: '已上载 M3',
+    note: '基于销售信息检索历史图纸 → 在线看图（缩放 / 平移 / 图层 / 测量）→ 提取 BOM → 上载 M3',
+    times: [
+      { label: '提交检索并打开图纸', time: '10:52' },
+      { label: 'BOM 上载 M3', time: '11:03' },
+    ],
   },
   {
     no: '03',
-    anchor: 'sheet-03',
-    title: '法兰盘装配图 · DWG 在线浏览',
-    meta: 'NY-FL-2026-008 / A2',
-    note: '可缩放、可图层控制，右侧接入图纸助手',
-  },
-  {
-    no: '04',
     anchor: 'compare',
     title: '需求分析 · 历史可能性展示 · 组装交互',
-    meta: '5 类 × 5 规格',
-    note: '逐件装入动画 + 与基准版本差异对比',
+    meta: '20 类 / 100 个历史规格',
+    status: '进行中',
+    note: '对话式需求分析 → 调用工具：历史规格对比 + 拖动组装',
+    times: [
+      { label: '检索历史规格', time: '11:10' },
+      { label: '组装方案比对', time: '11:32' },
+    ],
   },
 ]
+
+/** 第 01 区：客户附件信息（销售从客户处获得的 PDF / 图纸 / 图片等） */
+export const attachments = [
+  {
+    id: 'att-1',
+    name: '对接面尺寸图.pdf',
+    kind: 'pdf',
+    size: '3.4 MB',
+    from: '王工 · 微信',
+    state: '已解析',
+    note: '1 页 · 8 处标注',
+    key: '对接面 8×⌀13 通孔均布',
+  },
+  {
+    id: 'att-2',
+    name: '原法兰盘旧图.dwg',
+    kind: 'dwg',
+    size: '2.1 MB',
+    from: '客户资料库',
+    state: '待解析',
+    note: 'A2 · V2',
+    key: '旧版结构参考',
+  },
+  {
+    id: 'att-3',
+    name: '客户邮件截图.png',
+    kind: 'img',
+    size: '1.2 MB',
+    from: '王工 · 微信',
+    state: '已识别',
+    note: '1920 × 1080',
+    key: '交期与数量口径',
+  },
+  {
+    id: 'att-4',
+    name: '工况说明.docx',
+    kind: 'doc',
+    size: '240 KB',
+    from: '王工 · 邮件',
+    state: '已解析',
+    note: '2 页',
+    key: '80 ℃ / 3000 r/min / 脂润滑',
+  },
+  {
+    id: 'att-5',
+    name: '渗油部位照片.jpg',
+    kind: 'img',
+    size: '860 KB',
+    from: '王工 · 微信',
+    state: '已识别',
+    note: '4032 × 3024',
+    key: '密封面失效位置',
+  },
+]
+
+/** 第 01 区：从附件中提取到的要点 */
+export const attachmentPoints = [
+  '对接面 8×⌀13 通孔均布（来自 对接面尺寸图.pdf）',
+  '连续工作 80 ℃、转速 ≤ 3000 r/min、脂润滑（来自 工况说明.docx）',
+  '渗油发生在原法兰密封面外侧（来自 渗油部位照片.jpg）',
+]
+
+/** 第 02 区：历史图纸检索（chatbot 外壳 + 工具） */
+export const drawingChat = {
+  name: '图纸检索助手',
+  role: 'Drawing Finder',
+  greeting:
+    '你好，我可以基于销售整理出的需求（含客户附件信息）检索历史图纸库，并把命中的 DWG 图面与 BOM 展开给你看。',
+  preInput: '基于销售的信息检索历史图纸并展示 dwg 信息',
+  toolId: 'history_drawing_search',
+  toolName: '历史图纸检索 · DWG 在线浏览与 BOM',
+  reply: (q) =>
+    `已按「${q}」检索历史图纸库：命中 3 张相似图纸（最高相似度 96%），已打开最匹配的一张，下方可直接看图、提取 BOM 并上载至 M3。`,
+  suggestions: [
+    '基于销售的信息检索历史图纸并展示 dwg 信息',
+    '找 DN160 法兰盘的历史版本，看密封面改过没有',
+    '有没有配 ⌀40 轴、8 孔均布的老图可以直接借用',
+  ],
+}
+
+/** 第 02 区：检索命中的历史图纸 */
+export const drawingHits = [
+  {
+    id: 'doc-a',
+    file: '法兰盘装配图.dwg',
+    code: 'NY-FL-2026-008',
+    sheet: 'A2 · 1:2',
+    rev: 'V3',
+    score: 96,
+    date: '2026-02-20',
+    why: 'DN160 / ⌀40 轴 / 8×⌀13 均布 全部匹配',
+    suffix: '021',
+  },
+  {
+    id: 'doc-b',
+    file: '法兰盘装配图-旧.dwg',
+    code: 'NY-FL-2024-031',
+    sheet: 'A2 · 1:2',
+    rev: 'V1',
+    score: 88,
+    date: '2024-08-14',
+    why: 'DN160 匹配，孔数为 6×⌀13（需改制）',
+    suffix: '018',
+  },
+  {
+    id: 'doc-c',
+    file: '端盖装配图.dwg',
+    code: 'NY-CV-2025-012',
+    sheet: 'A2 · 1:1',
+    rev: 'V2',
+    score: 74,
+    date: '2025-05-06',
+    why: '同族端盖结构，可参考密封槽形式',
+    suffix: '012',
+  },
+]
+/** 第 01 区：销售端样例输入（口语化原始记录，可编辑） */
+export const intakeSample = [
+  '【平湖 · 新能源客户 王工 · 微信】09:12',
+  '他们那台电驱总成要换法兰盘，原来的老是渗油。要 DN160 那种，配 ⌀40 的轴，',
+  '孔他们那边是 8 个孔均布的，对接面定死了不能改。先要 5 件样件，7 天能不能给？',
+  '后面批量大概 200 件，交期 25 天左右。工况是连续跑，温度 80 度上下，转速 3000 转以内，',
+  '脂润滑。要材质证明，外观不能有毛刺，尺寸按国标来。',
+].join('\n')
+
+/** 第 01 区：整理过程（写死的步骤） */
+export const intakeSteps = [
+  '识别客户与项目',
+  '提取产品与规格',
+  '补全工况与验收要求',
+  '生成书面需求单',
+]
+
+/** 第 01 区：书面需求默认字段（未从文本中提取到时使用） */
+export const intakeDefaults = {
+  no: 'REQ-20261020-007',
+  customer: '平湖 · 新能源客户（王工）',
+  project: 'E-Mobility 电驱总成 · 法兰盘换型',
+  product: '法兰盘 DN160（平焊型）',
+  spec: '配 ⌀40 轴，8×⌀13 通孔均布；对接面尺寸以客户图纸为准',
+  qty: '样件 5 件；首批 200 件',
+  delivery: '样件 7 天；首批 25 天',
+  condition: '连续工作 80 ℃，转速 ≤ 3000 r/min，脂润滑',
+  acceptance: '尺寸按 GB/T 1804-m，外观无毛刺，附材质证明',
+  risk: '对接面孔距需客户确认；8 孔均布需专用分度工装',
+}
+
 
 /** 头版数据栏 */
 export const frontStats = [
@@ -84,23 +239,7 @@ export const footerColumns = [
 
 export const footerLegal = ['隐私政策', '使用条款', 'Cookie 设置', '供应商行为准则']
 
-/** 图纸 01 明细表（悬停可联动高亮图面零件） */
-export const gearboxBom = [
-  { no: '01', name: '壳体', material: 'HT250', qty: 1, part: '01' },
-  { no: '02', name: '内齿圈', material: '42CrMo', qty: 1, part: '02' },
-  { no: '03', name: '行星轮', material: '20CrMnTi', qty: 3, part: '03' },
-  { no: '04', name: '太阳轮', material: '20CrMnTi', qty: 1, part: '04' },
-  { no: '05', name: '输出轴', material: '40Cr', qty: 1, part: '05' },
-]
 
-/** 图纸 02 技术要求 */
-export const shaftNotes = [
-  '1. 未注圆角 R2，未注倒角 C1.5。',
-  '2. 调质处理 HB220~250，硬度均匀性 ≤ 20HB。',
-  '3. 键槽 14×9，按 GB/T 1095 加工，两侧对称度 0.03。',
-  '4. 轴承位 ⌀56 与 ⌀60 同轴度 ⌀0.02 A，Ra1.6。',
-  '5. 螺纹 M48×2 按 GB/T 196 加工，去毛刺锐边。',
-]
 
 /**
  * 零件对比数据：20 类零件（类型可重复，用名称区分）× 每类 5 个历史规格
@@ -255,7 +394,7 @@ export const assemblyOrder = partSlots.map((s) => s.key)
 
 /** 零件对比区文案 */
 export const compareIntro = {
-  kicker: '设计成果 · 第 04 区 · 需求分析',
+  kicker: '研发端 · 第 03 区 · 需求分析',
   title: '需求分析 · 历史可能性展示 · 组装交互',
   note: '在下方对话里描述需求（演示版本写死：无论输入什么需求，都会调用同一个工具），助手会把「历史可能性展示 · 组装交互」作为工具在对话中展开。',
 }

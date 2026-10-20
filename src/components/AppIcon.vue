@@ -34,6 +34,8 @@ const icons = {
   arrowUp: '<path d="M12 19V5"/><path d="M6 11l6-6 6 6"/>',
   chevronRight: '<path d="M9.5 6l6 6-6 6"/>',
   chevronLeft: '<path d="M14.5 6l-6 6 6 6"/>',
+  users:
+    '<circle cx="9.4" cy="8.4" r="3.2"/><path d="M3.6 20.4c0-3.1 2.5-5.4 5.8-5.4s5.8 2.3 5.8 5.4"/><path d="M16.2 5.9a3.1 3.1 0 0 1 0 5.9"/><path d="M17.6 15.2c2.3.6 3.9 2.5 3.9 4.8"/>',
   menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   check: '<path d="M5 12.6 9.8 17.4 19 6.8"/>',

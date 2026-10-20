@@ -23,31 +23,46 @@ npm run check:static # 静态产物自检
 | 段 | 组件 | 说明 |
 | --- | --- | --- |
 | ① 顶部 | `SiteHeader.vue` | 报头（平湖工厂 / 刊期 / 检索 / 登录）+ 吸顶导航条：工厂信息 / 品牌介绍 / 样品解决方案 / 职业 / 公司 + 企业新闻 & 媒体 / 联系我们。**全部为按钮，不做跳转**，点击仅切换高亮 |
-| ② 主体 | `LeadStory.vue` | 头版导语、本期图纸目录（4 条）、数据栏、厂区快讯滚动条 |
-| ② 主体 | `DrawingSheet.vue` ×2 | 图纸 01 行星齿轮减速箱总装图、图纸 02 传动轴零件图：**定死的滚动描线动画**（钉住 + 进度驱动） |
-| ② 主体 | `DwgViewer.vue` + `BomPanel.vue` | 图纸 03：DWG 在线浏览窗口（3）: 提取 BOM · 上载至 M3（1） |
-| ② 主体 | `PartCompare.vue` | 图纸 04：历史零件对比 + 组装交互（3）: 历史零件选择（1） |
+| ② 主体 | `LeadStory.vue` | 头版导语、**流程时间记录**（3 步样例时间与状态）、数据栏、厂区快讯滚动条 |
+| ② 主体 | `RequirementIntake.vue` | **01 销售端 · 客需需求整理**：样例输入（可编辑）+ **客户附件信息板块** → 对话式整理 → 结构化书面需求单 |
+| ② 主体 | `DrawingChat.vue` | **02 历史图纸检索 · DWG 在线浏览与 BOM**：chatbot 外壳，前置输入「基于销售的信息检索历史图纸并展示 dwg 信息」，工具内展开检索结果 + DWG 看图（3）: 提取 BOM · 上载 M3（1） |
+| ② 主体 | `PartCompare.vue` | **03 需求分析 · 历史可能性展示 · 组装交互**：对话调用工具（3）: 类别/规格/对比/上载 M3（1） |
 | ③ 页脚 | `SiteFooter.vue` | 公司 / 产品和解决方案 / 企业新闻 & 媒体 / 联系我们 四栏 + 订阅条 + 法务条，**全部为按钮** |
 
-## 滚动交互（图纸 01 / 02）
+> 演进说明：原「图纸 01 / 02」的两张滚动描线动画已移除（`DrawingSheet.vue`、`drawings/*`、
+> `useDrawingAnimation.js` 一并删除）；原「02 需求对齐」区块也已按要求整块去掉
+> （`RequirementAlign.vue`、`alignMessages` / `alignSummary` 已删除）；
+> 原独立的「03 DWG 在线浏览」已**包进 chatbot** 并提前为第 02 区。
+> 当前流程：**需求整理（含客户附件）→ 历史图纸检索与看图 / 提取 BOM → 需求分析与组装交互**。
 
-```
-<section class="pin-section">        // 高 210vh
-  <div class="pin-body">             // position: sticky
-    <slot />                         // 图纸 SVG
-```
+## 01 销售端 · 客需需求整理
 
-- `useScrollProgress`：把「钉住元素顶部到达导航条下沿 → 容器滚完」映射为 0~1 的进度。
-- `useDrawingAnimation`（anime.js v4）：图纸内元素通过属性声明参与动画
-  - `data-draw data-stage="1..5"` → 描线生长（`createDrawable` + `draw`）
-  - `data-fade data-stage="1..5"` → 淡入（中心线等虚线，避免与 `stroke-dasharray` 冲突）
-  - 阶段窗口：`1 图框基准 → 2 轮廓 → 3 剖面线 → 4 尺寸 → 5 标注与标题栏`
-- 滚动进度直接 `timeline.progress = p`（含缓动），实现「滚到哪、画到哪」；
-  右上角「自动演示」可让时间轴自行播放一遍。
-- 窄屏（≤900px）自动取消钉住，进入视口后播放一次；`prefers-reduced-motion` 下直接展示完整图纸。
-- 图纸 01 右侧明细表 hover 会高亮图面中对应零件（`highlight` 作用域插槽透传）。
+`RequirementIntake.vue`：
 
-## DWG 在线浏览窗口
+- **左**：样例输入（可编辑的客户口语记录）+「提交整理 / 恢复样例」+ 字数统计；
+  下方是 4 步整理过程（识别客户 → 提取规格 → 补全工况 → 生成需求单），逐步点亮
+- **右**：对话形式 —— 回显销售的原始记录 → "正在整理…"思考态 → 输出**书面需求单**：
+  需求单编号 / 客户来源 / 项目用途 / 产品 / 规格要求 / 数量 / 交期 / 工况条件 / 验收要求 / 风险提示（9 项）
+  +「导出需求单」「转研发对齐」
+- **下：客户附件信息板块** —— 销售从客户处拿到的 PDF / 图纸 / 图片 / 文档：
+  5 个附件卡片（文件名 / 大小 / 来源 / 页数或分辨率 / 已解析·待解析状态 / 该附件提供的关键信息），
+  表头统计「5 个附件 · 合计 7.8 MB · 4 个已解析」，底部「附件要点」3 条（会随需求单流转给检索与研发）
+- **字段真的从文本里提取**：正则抓 `DN/⌀/M` 规格、数量、交期、工况、验收、客户（【…】），
+  提取不到才用默认值 —— 改一改输入框再点「提交整理」，右侧需求单会跟着变。
+
+## 02 历史图纸检索 · DWG 在线浏览与 BOM
+
+`DrawingChat.vue` —— chatbot 外壳，前置输入写死为 **「基于销售的信息检索历史图纸并展示 dwg 信息」**：
+
+- 对话流：助手开场白 → 用户前置输入 → 助手回复（命中 3 张、最高相似度 96%）→
+  `已调用工具 history_drawing_search · 参数 { 需求: "…" }` → 工具视图
+- **工具视图**：
+  - **检索结果** 3 条（相似度徽标 / 文件名 / 图号 / 图幅 / 修订 / 日期 / 命中理由），点击任一条即
+    切换下方 DWG（看图器按 `key` 重挂载，重新播放解析动画，版本徽标同步为该图的修订号）
+  - **3 : 1** —— 左：`DwgViewer`（滚轮缩放 / 拖拽平移 / 图层 / 两点测量 / 全屏）；
+    右：`BomPanel`（从图面提取 BOM → 上载 M3，单据号随图纸变化：`-021` / `-018` / `-012`）
+- 输入行同样写死：无论输入什么，都检索同一批图纸并打开最匹配的一张（可点 chips 快速提问）
+### DWG 在线浏览窗口（第 02 区工具内）
 
 内置一张示例图纸（法兰盘装配图，A2），支持：
 
@@ -64,9 +79,9 @@ ODA / Autodesk Platform Services 的在线视图地址：
 <DwgViewer file-name="法兰盘装配图.dwg" embed-url="https://viewer.example.com/dwg/NY-FL-2026-008" />
 ```
 
-## 提取 BOM · 上载至 M3（DWG 右侧，比例 3 : 1）
+### 提取 BOM · 上载至 M3（DWG 右侧，比例 3 : 1）
 
-DWG 在线浏览窗口右侧原来是对话窗口，现已替换为 `BomPanel.vue`（card 形态）：
+第 02 区工具视图里，DWG 右侧为 `BomPanel.vue`（card 形态）：
 
 - 从当前 DWG 图面的标题栏 / 明细栏**提取 BOM**：6 行（图号 / 名称 / 规格 / 材料 / 数量 / 单重 / 合计），
   表头显示项数、件数、总重，表尾合计行
@@ -76,8 +91,8 @@ DWG 在线浏览窗口右侧原来是对话窗口，现已替换为 `BomPanel.vu
 - 比例不变：仍由 `App.vue` 的 `.dwg-row { grid-template-columns: 3fr 1fr }` 控制，窄屏上下堆叠
 
 > `BomPanel.vue` 是**两处共用**的组件：这里用 `variant="card"` + `action="提取"`，
-> 第 04 区工具视图的「上载至M3」页签用 `variant="plain"` + `action="生成"`（BOM 由组装台实时生成）。
-> 全站对话能力集中在第 04 区的「需求分析助手」，原 `ChatPanel.vue` 已移除。
+> 第 03 区工具视图的「上载至M3」页签用 `variant="plain"` + `action="生成"`（BOM 由组装台实时生成）。
+> 第 02、03 两个区块都是 chatbot 外壳：第 02 区是「图纸检索助手」，第 03 区是「需求分析助手」。
 
 ## 目录结构
 
@@ -86,18 +101,17 @@ src/
 ├─ App.vue                     # 三段式装配
 ├─ main.js                     # 入口 + v-reveal 指令注册
 ├─ styles/base.css             # 设计令牌（纸/墨/淡绿）、纸纹、按钮、排版工具类
-├─ data/site.js                # 导航、页脚、明细表、技术要求、对话文案
+├─ data/site.js                # 流程时间记录、需求样例与对齐文案、20 类零件、BOM、页脚
 ├─ directives/reveal.js        # 进入视口浮现
 ├─ composables/
-│  ├─ useScrollProgress.js     # 滚动进度 / 页面阅读进度
-│  └─ useDrawingAnimation.js   # anime.js 时间轴 + 阶段窗口 + 滚动驱动
-├─ utils/hatch.js              # 工程图 45° 剖面线生成器
+│  └─ useScrollProgress.js     # 页面阅读进度
+├─ utils/hatch.js              # 工程图 45° 剖面线生成器（DWG 视图用）
 └─ components/
-   ├─ SiteHeader.vue  LeadStory.vue  DrawingSheet.vue
-   ├─ DwgViewer.vue   BomPanel.vue   SiteFooter.vue  AppIcon.vue
-   └─ drawings/
-      ├─ DrawingGearbox.vue    # 图纸 01 总装图
-      └─ DrawingShaft.vue      # 图纸 02 零件图
+   ├─ SiteHeader.vue      LeadStory.vue        SiteFooter.vue   AppIcon.vue
+   ├─ RequirementIntake.vue   # 01 销售端 · 客需需求整理（含客户附件板块）
+   ├─ DrawingChat.vue         # 02 历史图纸检索 chatbot（DWG 看图 + 提取 BOM）
+   ├─ DwgViewer.vue  BomPanel.vue   # 看图器 / BOM 面板（被 02 与 03 复用）
+   └─ PartCompare.vue         # 03 需求分析 · 历史可能性展示 · 组装交互
 ```
 
 图标全部为内置线性 SVG（`AppIcon.vue`），不依赖图标库；字体使用系统宋体/等宽字体栈，
@@ -149,7 +163,7 @@ location /drawings/ {
 2. **接在线服务**：给 `<DwgViewer>` 传 `embed-url` 指向 Autodesk Platform Services、
    ODA 或公司内网的转换/预览服务，窗口会自动切换为 iframe 嵌入（此时需要该服务的可用性）。
 
-## 需求分析 · 历史可能性展示 · 组装交互（第 04 区）
+## 03 需求分析 · 历史可能性展示 · 组装交互
 
 `PartCompare.vue`，位于 DWG 在线浏览块下方。整块**套了一层 chatbot 外壳**：
 
@@ -210,8 +224,8 @@ location /drawings/ {
 ## 自定义提示
 
 - 换配色：改 `src/styles/base.css` 里的 `--paper / --ink / --accent` 系列变量。
-- 换工厂名：`SiteHeader.vue`（报头与厂区）、`DrawingSheet.vue` 的 `unit` 默认值、`SiteFooter.vue`（地址与备案行）。
-- 换图纸内容：在 `src/components/drawings/` 下新增 SVG 组件，用 `data-draw / data-fade / data-stage`
-  标注需要动画的元素，然后在 `App.vue` 的 `DrawingSheet` 插槽中使用。
-- 调动画节奏：改 `useDrawingAnimation.js` 中的 `STAGE_WINDOW`。
-- 调钉住滚动长度：改 `DrawingSheet.vue` 中 `.pin-section { height: 210vh }`。
+- 换工厂名：`SiteHeader.vue`（报头与厂区）、`SiteFooter.vue`（地址与备案行）。
+- 换需求样例：`src/data/site.js` 的 `intakeSample`（样例输入）、`intakeDefaults`（书面需求默认字段）、
+  `alignMessages` / `alignSummary`（对齐对话与结论）、`processLog`（流程时间记录）。
+- 换客户附件：`src/data/site.js` 的 `attachments` / `attachmentPoints`；换检索命中：`drawingHits`。
+- 调组装吸附：`PartCompare.vue` 的 `SNAP`（吸附半径）与 `ZOOM_MIN / ZOOM_MAX`（缩放范围）。

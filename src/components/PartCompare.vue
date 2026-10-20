@@ -485,7 +485,7 @@ onBeforeUnmount(() => {
     <div class="wrap">
       <!-- 抬头 -->
       <header class="cmp-head">
-        <span class="cmp-head__no" aria-hidden="true">04</span>
+        <span class="cmp-head__no" aria-hidden="true">03</span>
         <div>
           <p class="kicker">{{ compareIntro.kicker }}</p>
           <h3 class="cmp-head__title">{{ compareIntro.title }}</h3>

@@ -12,6 +12,8 @@ import { hatchLines } from '../utils/hatch.js'
 
 const props = defineProps({
   fileName: { type: String, default: '法兰盘装配图.dwg' },
+  rev: { type: String, default: 'V3' },
+  sheet: { type: String, default: 'A2 · 1:2' },
   embedUrl: { type: String, default: '' },
 })
 
@@ -159,7 +161,7 @@ defineExpose({ fit, zoomBy })
       <span class="tabs__file is-on">
         <AppIcon name="file" :size="14" />
         {{ fileName }}
-        <em class="tabs__badge mono">V3</em>
+        <em class="tabs__badge mono">{{ rev }}</em>
       </span>
       <button class="tabs__file" type="button">
         <AppIcon name="file" :size="14" />
@@ -170,7 +172,7 @@ defineExpose({ fit, zoomBy })
         主动轴.dwg
       </button>
       <span class="tabs__spacer"></span>
-      <span class="tabs__meta mono">A2 · 1:2 · mm · 修订 R3</span>
+      <span class="tabs__meta mono">{{ sheet }} · mm · 修订 {{ rev }}</span>
     </div>
 
     <!-- 工具栏 -->
