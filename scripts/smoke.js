@@ -129,10 +129,42 @@ await clickTab('规格')
 const histRows = root.querySelectorAll('#compare .hist__row').length
 await clickTab('对比')
 const diffRows = root.querySelectorAll('#compare .diff tbody tr').length
-await clickTab('上传')
-const dropzones = root.querySelectorAll('#compare .drop').length
-const uploadRows = root.querySelectorAll('#compare .upload').length
+await clickTab('上载至M3')
+const m3Targets = root.querySelectorAll('#compare .target__row').length
+const m3Title = root.querySelector('#compare .pane__title')?.textContent.replace(/\s+/g, ' ').trim()
+const bomRowCount = root.querySelectorAll('#compare .bom__row').length
+const bomText = root.querySelector('#compare .bom')?.textContent.replace(/\s+/g, ' ') || ''
+const bomHasHousing = bomText.includes('NY-BS-120')
+
+/* 生成 BOM → 上载至 M3 流程 */
+const btnByText = (scope, t) =>
+  [...root.querySelectorAll(`${scope} .bom__actions .btn`)].find((b) => b.textContent.includes(t))
+btnByText('#compare', '生成 BOM')?.click()
+await wait(150)
+const bomGenerating = root.querySelector('#compare .bom__status')?.textContent.includes('正在生成')
+await wait(900)
+const bomReady = root.querySelector('#compare .bom__status')?.textContent.includes('已生成 BOM')
+btnByText('#compare', '上载至')?.click()
+await wait(150)
+const bomUploading = root.querySelector('#compare .bom__status')?.textContent.includes('正在上载')
+await wait(1100)
+const m3Status = root.querySelector('#compare .bom__status')?.textContent.replace(/\s+/g, ' ').trim()
+const m3Uploaded = /已上载至 M3 · 单据 BOM-\d{8}-\d{3}/.test(m3Status)
+const m3Notice = !!root.querySelector('#compare .bom-panel__notice')
 await clickTab('类别')
+
+/* —— DWG 在线浏览右侧：提取 BOM · 上载至 M3（原对话框已移除）—— */
+const dwgBomPanel = !!root.querySelector('#sheet-03 .bom-panel--card')
+const dwgChatGone = !root.querySelector('#sheet-03 .chat')
+const dwgBomRows = root.querySelectorAll('#sheet-03 .bom__row').length
+const dwgBomText = root.querySelector('#sheet-03 .bom')?.textContent.replace(/\s+/g, ' ') || ''
+btnByText('#sheet-03', '提取 BOM')?.click()
+await wait(900)
+const dwgExtracted = root.querySelector('#sheet-03 .bom__status')?.textContent.includes('已提取 BOM')
+btnByText('#sheet-03', '上载至')?.click()
+await wait(1100)
+const dwgStatus = root.querySelector('#sheet-03 .bom__status')?.textContent.replace(/\s+/g, ' ').trim()
+const dwgUploaded = /已上载至 M3 · 单据 BOM-\d{8}-021/.test(dwgStatus)
 
 /* —— chatbot 外壳：需求分析 → 调用工具 —— */
 const chatShell = !!root.querySelector('#compare .chat-shell')
@@ -197,8 +229,22 @@ const report = {
   stageState,
   histRows,
   diffRows,
-  dropzones,
-  uploadRows,
+  m3Targets,
+  m3Title,
+  bomRowCount,
+  bomHasHousing,
+  bomGenerating,
+  bomReady,
+  bomUploading,
+  m3Status,
+  m3Uploaded,
+  m3Notice,
+  dwgBomPanel,
+  dwgChatGone,
+  dwgBomRows,
+  dwgExtracted,
+  dwgUploaded,
+  dwgStatus,
   chatShell,
   toolInStream,
   toolCallLine,
@@ -240,8 +286,30 @@ if (!assembledStamp) {
   console.error('❌ 自动组装未完成（未出现“装配完成”印章）')
   process.exit(1)
 }
-if (histRows !== 5 || diffRows !== 5 || dropzones !== 1 || uploadRows !== 4) {
-  console.error('❌ 右侧页签内容异常（历史规格 / 对比行 / 上传区）')
+if (histRows !== 5 || diffRows !== 5) {
+  console.error('❌ 右侧页签内容异常（历史规格 / 对比行）')
+  process.exit(1)
+}
+if (m3Targets !== 3 || !m3Title?.startsWith('上载至 M3') || bomRowCount !== 6 || !bomHasHousing) {
+  console.error(
+    `❌「上载至 M3」BOM 异常：targets=${m3Targets} rows=${bomRowCount} housing=${bomHasHousing} title=${m3Title}`,
+  )
+  process.exit(1)
+}
+if (!bomGenerating || !bomReady || !bomUploading || !m3Uploaded || !m3Notice) {
+  console.error(
+    `❌ 生成 BOM / 上载流程异常：gen=${bomGenerating} ready=${bomReady} uploading=${bomUploading} uploaded=${m3Uploaded} status=${m3Status}`,
+  )
+  process.exit(1)
+}
+if (!dwgBomPanel || !dwgChatGone || dwgBomRows !== 6 || !dwgBomText.includes('NY-FL-160')) {
+  console.error(
+    `❌ DWG 右侧 BOM 面板异常：panel=${dwgBomPanel} chatGone=${dwgChatGone} rows=${dwgBomRows}`,
+  )
+  process.exit(1)
+}
+if (!dwgExtracted || !dwgUploaded) {
+  console.error(`❌ DWG 提取 BOM / 上载 M3 流程异常：extract=${dwgExtracted} status=${dwgStatus}`)
   process.exit(1)
 }
 if (!chatShell || !toolInStream || !toolCallLine) {
@@ -256,4 +324,4 @@ if (!typingShown || userMsgsAfter !== userMsgsBefore + 1 || !replyMatched || !to
   console.error('❌ 需求分析对话流程异常（思考态 / 用户消息 / 写死回复 / 工具高亮）')
   process.exit(1)
 }
-console.log('✅ 挂载、描线动画、滚动驱动、拖动组装、20 类筛选、页签与需求分析对话均正常')
+console.log('✅ 挂载、描线动画、滚动驱动、拖动组装、20 类筛选、页签、需求分析对话、DWG 提取 BOM 与两处 M3 上载均正常')

@@ -278,29 +278,12 @@ export const analystChat = {
   ],
 }
 
-/** 图纸助手（暂不做功能，仅界面） */
-export const chatSuggestions = [
-  '这张图的材料与热处理是什么？',
-  '帮我核对 ⌀18 孔的位置公差',
-  '导出这张图的 BOM 明细',
-  '对比 V2 与 V3 的差异',
-]
-
-export const chatMessages = [
-  {
-    role: 'bot',
-    time: '09:24',
-    text: '你好，我是图纸助手。已载入当前窗口的 DWG（法兰盘装配图 / V3）。可以问我尺寸、公差、材料、版本差异或明细表。',
-  },
-  {
-    role: 'user',
-    time: '09:25',
-    text: '这版相比 V2 改了什么？',
-  },
-  {
-    role: 'bot',
-    time: '09:25',
-    text: '检测到 3 处修订：① 中心孔由 ⌀76 改为 ⌀80；② 均布孔由 6×⌀16 改为 8×⌀18，分度圆 ⌀230；③ 增加密封槽 2×1.5。修订记录见标题栏 R3。',
-    points: ['中心孔 ⌀76 → ⌀80', '均布孔 6×⌀16 → 8×⌀18', '新增密封槽 2×1.5'],
-  },
+/** DWG 在线浏览（法兰盘装配图）从图面明细栏提取的 BOM */
+export const dwgBom = [
+  { seq: '01', code: 'NY-FL-160', name: '法兰盘', spec: 'DN160', material: 'Q235B', qty: 1, unit: 4.6, total: 4.6 },
+  { seq: '02', code: 'NY-CV-140', name: '端盖', spec: '⌀140', material: 'HT200', qty: 1, unit: 2.1, total: 2.1 },
+  { seq: '03', code: 'NY-BS-120', name: '轴承座', spec: 'H1-120', material: 'HT200', qty: 1, unit: 7.4, total: 7.4 },
+  { seq: '04', code: 'NY-SE-080', name: '密封垫', spec: '⌀80', material: '耐油橡胶', qty: 2, unit: 0.06, total: 0.12 },
+  { seq: '05', code: 'NY-KY-014', name: '平键', spec: '14×9', material: '45 钢', qty: 1, unit: 0.12, total: 0.12 },
+  { seq: '06', code: 'NY-FB-M12', name: '六角螺栓组', spec: 'M12×6', material: '8.8 级', qty: 8, unit: 0.04, total: 0.32 },
 ]

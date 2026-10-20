@@ -25,7 +25,7 @@ npm run check:static # 静态产物自检
 | ① 顶部 | `SiteHeader.vue` | 报头（平湖工厂 / 刊期 / 检索 / 登录）+ 吸顶导航条：工厂信息 / 品牌介绍 / 样品解决方案 / 职业 / 公司 + 企业新闻 & 媒体 / 联系我们。**全部为按钮，不做跳转**，点击仅切换高亮 |
 | ② 主体 | `LeadStory.vue` | 头版导语、本期图纸目录（4 条）、数据栏、厂区快讯滚动条 |
 | ② 主体 | `DrawingSheet.vue` ×2 | 图纸 01 行星齿轮减速箱总装图、图纸 02 传动轴零件图：**定死的滚动描线动画**（钉住 + 进度驱动） |
-| ② 主体 | `DwgViewer.vue` + `ChatPanel.vue` | 图纸 03：DWG 在线浏览窗口（3）: 图纸助手（1） |
+| ② 主体 | `DwgViewer.vue` + `BomPanel.vue` | 图纸 03：DWG 在线浏览窗口（3）: 提取 BOM · 上载至 M3（1） |
 | ② 主体 | `PartCompare.vue` | 图纸 04：历史零件对比 + 组装交互（3）: 历史零件选择（1） |
 | ③ 页脚 | `SiteFooter.vue` | 公司 / 产品和解决方案 / 企业新闻 & 媒体 / 联系我们 四栏 + 订阅条 + 法务条，**全部为按钮** |
 
@@ -64,12 +64,20 @@ ODA / Autodesk Platform Services 的在线视图地址：
 <DwgViewer file-name="法兰盘装配图.dwg" embed-url="https://viewer.example.com/dwg/NY-FL-2026-008" />
 ```
 
-## 图纸助手（右侧，比例 3 : 1）
+## 提取 BOM · 上载至 M3（DWG 右侧，比例 3 : 1）
 
-`ChatPanel.vue` 仅为界面：预设问答、快捷提问、输入框与发送按钮。
-点击发送只弹出「对话功能开发中」提示，不产生真实问答（按需求暂不实现功能）。
-比例由 `App.vue` 中的 `.dwg-row { grid-template-columns: 3fr 1fr }` 控制，
-窄屏下改为上下堆叠。
+DWG 在线浏览窗口右侧原来是对话窗口，现已替换为 `BomPanel.vue`（card 形态）：
+
+- 从当前 DWG 图面的标题栏 / 明细栏**提取 BOM**：6 行（图号 / 名称 / 规格 / 材料 / 数量 / 单重 / 合计），
+  表头显示项数、件数、总重，表尾合计行
+- 三个动作：**提取 BOM** →（"正在提取 BOM…"）→ `已提取 BOM · 时间`；**导出 CSV**；**上载至 M3** →
+  （"正在上载至 M3…"）→ `已上载至 M3 · 单据 BOM-YYYYMMDD-021` 并弹出提示
+- 上载目标（外观）：M3 · 平湖工厂 / 物料主数据 / 2026 / 按图号自动升版
+- 比例不变：仍由 `App.vue` 的 `.dwg-row { grid-template-columns: 3fr 1fr }` 控制，窄屏上下堆叠
+
+> `BomPanel.vue` 是**两处共用**的组件：这里用 `variant="card"` + `action="提取"`，
+> 第 04 区工具视图的「上载至M3」页签用 `variant="plain"` + `action="生成"`（BOM 由组装台实时生成）。
+> 全站对话能力集中在第 04 区的「需求分析助手」，原 `ChatPanel.vue` 已移除。
 
 ## 目录结构
 
@@ -86,7 +94,7 @@ src/
 ├─ utils/hatch.js              # 工程图 45° 剖面线生成器
 └─ components/
    ├─ SiteHeader.vue  LeadStory.vue  DrawingSheet.vue
-   ├─ DwgViewer.vue   ChatPanel.vue  SiteFooter.vue  AppIcon.vue
+   ├─ DwgViewer.vue   BomPanel.vue   SiteFooter.vue  AppIcon.vue
    └─ drawings/
       ├─ DrawingGearbox.vue    # 图纸 01 总装图
       └─ DrawingShaft.vue      # 图纸 02 零件图
@@ -128,7 +136,7 @@ location /drawings/ {
 - **无路由**：单页无 vue-router，不需要 history fallback 重写规则（上面的 `try_files` 只是兜底）。
 - **零外部请求**：字体用系统字体栈，图标是内联 SVG，图纸是内联 SVG，**不请求任何 CDN / 字体 / 图片**，
   内网、离线环境可直接部署。
-- **无接口调用**：询价、图纸助手等均未接后端，页面可独立运行。
+- **无接口调用**：BOM 提取、M3 上载、需求分析对话等均未接后端，页面可独立运行。
 - 若部署在根目录并希望用绝对路径，把 `vite.config.js` 的 `base` 改成 `'/'` 后重新构建。
 - 不要用 `file://` 直接打开 `dist/index.html`（ES Module 受同源策略限制），请走 http 服务。
 
@@ -181,7 +189,7 @@ location /drawings/ {
 | 类别 | **20 类零件**（类型可重复，按名称区分）+ 顶部筛选输入行；列表固定高度只显示 5 行，其余滚动 |
 | 规格 | 该类 5 个历史规格（图号 / 规格 / 日期 / 修订）+ 版本时间线 V1→V5 + 设为基准 / 重置 |
 | 对比 | 基准 ↔ 当前 的同心圆对比图 + 外径 / 螺栓孔 / 重量 / 版本 / 日期差异表 |
-| 上传 | 拖拽上传区（外观）、支持格式标签、最近上传列表（已解析 / 转换中带进度条 / 待校核）；点击只提示"功能开发中" |
+| 上载至M3 | **生成 BOM 表**（依据左侧组装台当前 5 个零件与其历史规格实时生成，含序号 / 物料编码 / 名称 / 规格 / 材料 / 数量 / 单重 / 合计重量）+ 「生成 BOM」「导出 CSV」「上载至 M3」；上载目标为 M3 · 平湖工厂（BOM 库位 / 版本策略）；上载后状态栏显示 `已上载至 M3 · 单据 BOM-YYYYMMDD-014`。均为界面演示，不产生真实数据 |
 
 页签条下方常驻一行上下文（当前类别 · 装配位 · 当前规格 · 基准规格）。
 

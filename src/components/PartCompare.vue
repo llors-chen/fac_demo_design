@@ -11,6 +11,7 @@
 import { animate } from 'animejs'
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
+import BomPanel from './BomPanel.vue'
 import { compareIntro, analystChat, defaultCatBySlot, partCategories, partSlots } from '../data/site.js'
 
 /* ------------------------------ 对话（需求分析助手） ------------------------------ */
@@ -310,7 +311,7 @@ const tabs = [
   { key: 'cat', label: '类别', title: '零件类别（20 类）' },
   { key: 'spec', label: '规格', title: '历史规格' },
   { key: 'diff', label: '对比', title: '对比结果' },
-  { key: 'upload', label: '上传', title: '上传图纸' },
+  { key: 'upload', label: '上载至M3', title: '上载至 M3 系统' },
 ]
 const activeTab = ref('cat')
 const dir = ref(1)
@@ -382,19 +383,85 @@ function resetBaseline() {
   baselineByCat[cat.value.key] = 0
 }
 
-/* ------------------------------ 上传（仅界面） ------------------------------ */
-const uploadFiles = [
-  { name: '法兰盘-DN160-V4.dwg', size: '2.4 MB', state: 'ok', note: '已解析 · 3 个布局' },
-  { name: '端盖-⌀140-V4.dxf', size: '860 KB', state: 'ok', note: '已解析 · 1 个布局' },
-  { name: '轴承座-H1-150.step', size: '12.8 MB', state: 'busy', note: '正在转换', progress: 68 },
-  { name: '主动轴-装配图.pdf', size: '4.1 MB', state: 'wait', note: '待校核' },
-]
-const uploadNotice = ref(false)
-let uploadTimer = null
-function onUploadClick() {
-  uploadNotice.value = true
-  window.clearTimeout(uploadTimer)
-  uploadTimer = window.setTimeout(() => (uploadNotice.value = false), 2600)
+/* ------------------------------ 生成 BOM · 上载至 M3（仅界面） ------------------------------ */
+const SLOT_ORDER = ['housing', 'bushing', 'gear', 'flange', 'cover']
+
+/** BOM 依据左侧组装台当前装配的零件与其历史规格生成 */
+const bomRows = computed(() => {
+  const rows = SLOT_ORDER.map((slot, i) => {
+    const key = activeBySlot[slot]
+    const c = catByKey(key)
+    const e = c.entries[pickedByCat[key]]
+    return {
+      seq: String(i + 1).padStart(2, '0'),
+      code: e.code,
+      name: c.name,
+      spec: e.label,
+      material: c.material,
+      qty: 1,
+      unit: e.weight,
+      total: e.weight,
+    }
+  })
+  rows.push({
+    seq: '06',
+    code: 'NY-FB-M12',
+    name: '六角螺栓组',
+    spec: 'M12×6',
+    material: '8.8 级',
+    qty: 6,
+    unit: 0.04,
+    total: 0.24,
+  })
+  return rows
+})
+
+const bomSummary = computed(() => ({
+  items: bomRows.value.length,
+  qty: bomRows.value.reduce((s, r) => s + r.qty, 0),
+  weight: Math.round(bomRows.value.reduce((s, r) => s + r.total, 0) * 100) / 100,
+}))
+
+const bomState = ref('ready') // ready | generating | uploading | uploaded
+const bomStamp = ref(nowTime())
+const bomDocNo = ref('')
+const m3Notice = ref('')
+let bomTimer = null
+let noticeTimer = null
+
+function flashNotice(text, ms = 2600) {
+  m3Notice.value = text
+  window.clearTimeout(noticeTimer)
+  noticeTimer = window.setTimeout(() => (m3Notice.value = ''), ms)
+}
+
+function generateBom() {
+  if (bomState.value === 'generating') return
+  bomState.value = 'generating'
+  window.clearTimeout(bomTimer)
+  bomTimer = window.setTimeout(() => {
+    bomState.value = 'ready'
+    bomStamp.value = nowTime()
+    bomDocNo.value = ''
+    flashNotice('BOM 已按当前组装台重新生成（演示）')
+  }, 700)
+}
+
+function exportBom() {
+  flashNotice('BOM 已导出为 CSV（演示）')
+}
+
+function uploadBom() {
+  if (bomState.value === 'uploading') return
+  bomState.value = 'uploading'
+  window.clearTimeout(bomTimer)
+  bomTimer = window.setTimeout(() => {
+    const d = new Date()
+    const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+    bomDocNo.value = `BOM-${ymd}-014`
+    bomState.value = 'uploaded'
+    flashNotice(`BOM 已上载至 M3 · 单据 ${bomDocNo.value}（演示）`, 3200)
+  }, 900)
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */
@@ -407,7 +474,10 @@ onMounted(() => {
     })
   }
 })
-onBeforeUnmount(() => window.clearTimeout(uploadTimer))
+onBeforeUnmount(() => {
+  window.clearTimeout(bomTimer)
+  window.clearTimeout(noticeTimer)
+})
 </script>
 
 <template>
@@ -991,48 +1061,20 @@ onBeforeUnmount(() => window.clearTimeout(uploadTimer))
                 <p class="pane__code mono">{{ current.code }} · 修订 {{ current.rev }}</p>
               </section>
 
-              <!-- ④ 上传图纸（外观，不做功能） -->
+              <!-- ④ 生成 BOM · 上载至 M3（外观，不做功能） -->
               <section v-else key="upload" class="pane">
-                <h4 class="pane__title">上传图纸</h4>
+                <h4 class="pane__title">
+                  上载至 M3
+                  <span class="pane__sub mono">BOM / 物料主数据</span>
+                </h4>
 
-                <button class="drop" type="button" @click="onUploadClick">
-                  <span class="drop__icon"><AppIcon name="download" :size="22" /></span>
-                  <span class="drop__title">拖拽图纸到此处</span>
-                  <span class="drop__sub mono">或点击选择文件 · 单文件 ≤ 200 MB</span>
-                  <span class="drop__btn btn btn--sm">选择文件</span>
-                </button>
-
-                <div class="formats">
-                  <span v-for="f in ['DWG', 'DXF', 'STEP', 'IGES', 'PDF']" :key="f" class="tag">{{ f }}</span>
-                </div>
-
-                <h5 class="pane__subtitle">最近上传</h5>
-                <ul class="uploads">
-                  <li v-for="u in uploadFiles" :key="u.name" class="upload" :class="'is-' + u.state">
-                    <span class="upload__icon"><AppIcon name="file" :size="15" /></span>
-                    <span class="upload__main">
-                      <span class="upload__name">{{ u.name }}</span>
-                      <span class="upload__meta mono">{{ u.size }} · {{ u.note }}</span>
-                      <span v-if="u.state === 'busy'" class="upload__bar">
-                        <span :style="{ transform: `scaleX(${(u.progress || 0) / 100})` }"></span>
-                      </span>
-                    </span>
-                    <span class="upload__state mono">
-                      {{ u.state === 'ok' ? '已解析' : u.state === 'busy' ? '转换中' : '待校核' }}
-                    </span>
-                  </li>
-                </ul>
-
-                <p class="pane__hint">
-                  上传后自动提取图框、标题栏与版本信息，并与图纸库现有版本比对；同名不同版本会进入校核队列。
-                </p>
-
-                <transition name="fade">
-                  <p v-if="uploadNotice" class="pane__notice">
-                    <AppIcon name="info" :size="14" />
-                    上传功能开发中，当前仅展示界面。
-                  </p>
-                </transition>
+                <BomPanel
+                  action="生成"
+                  doc-suffix="014"
+                  :rows="bomRows"
+                  lead="依据左侧组装台当前的 5 个零件与其历史规格生成 BOM，确认后上载至 M3。"
+                  hint="BOM 按图号自动匹配 M3 物料编码；上载后写入物料主数据与版本记录，同名不同版本进入校核队列，通过后回写 M3 版本号。"
+                />
               </section>
             </transition>
           </div>
@@ -1722,18 +1764,7 @@ onBeforeUnmount(() => window.clearTimeout(uploadTimer))
   margin-top: 4px;
   font-size: 0.54rem;
 }
-.pane__notice {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 6px 10px;
-  border: 1px solid var(--accent-2);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-  background: var(--accent-3);
-  color: var(--accent-ink);
-  font-size: 0.76rem;
-}
+
 
 /* 页签切换动画 */
 .slide-left-enter-active,
@@ -2089,119 +2120,6 @@ onBeforeUnmount(() => window.clearTimeout(uploadTimer))
 .diff__delta {
   text-align: right;
   font-size: 0.66rem;
-}
-
-/* 上传 */
-.drop {
-  display: grid;
-  justify-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 20px 12px;
-  border: 1px dashed var(--rule-2);
-  border-radius: var(--r-md) 0 var(--r-md) 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.4)),
-    var(--paper-2);
-  text-align: center;
-  transition: border-color 0.24s ease, background 0.24s ease, transform 0.24s ease;
-}
-.drop:hover {
-  border-color: var(--accent-ink);
-  background: var(--accent-3);
-  transform: translateY(-2px);
-}
-.drop__icon {
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--accent-2);
-  border-radius: 0 var(--r-sm) 0 var(--r-sm);
-  background: var(--accent-3);
-  color: var(--accent-ink);
-}
-.drop__title {
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-.drop__sub {
-  font-size: 0.54rem;
-}
-.drop__btn {
-  margin-top: 4px;
-  pointer-events: none;
-}
-.formats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
-}
-.uploads {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 4px;
-}
-.upload {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px;
-  border-bottom: 1px dotted var(--rule);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-  transition: background 0.2s ease;
-}
-.upload:hover {
-  background: var(--accent-3);
-}
-.upload__icon {
-  color: var(--ink-3);
-  margin-top: 2px;
-}
-.upload.is-ok .upload__icon {
-  color: var(--accent-ink);
-}
-.upload__main {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-.upload__name {
-  font-size: 0.82rem;
-  word-break: break-all;
-}
-.upload__meta {
-  font-size: 0.5rem;
-}
-.upload__bar {
-  display: block;
-  height: 3px;
-  margin-top: 3px;
-  background: var(--paper-4);
-  border-radius: var(--r-pill);
-  overflow: hidden;
-}
-.upload__bar span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  border-radius: var(--r-pill);
-  transform-origin: left;
-}
-.upload__state {
-  font-size: 0.5rem;
-  color: var(--ink-4);
-  white-space: nowrap;
-  margin-top: 2px;
-}
-.upload.is-ok .upload__state {
-  color: var(--accent-ink);
-}
-.upload.is-busy .upload__state {
-  color: var(--ink-2);
 }
 
 @media (max-width: 1180px) {

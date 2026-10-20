@@ -2,12 +2,12 @@
 /**
  * 首页装配：三段式
  *   ① 报头 + 导航条（SiteHeader）
- *   ② 主体：头版导语 + 两张定死图纸（滚动描线）+ 第三张 DWG 在线浏览（3:1 图纸助手）
+ *   ② 主体：头版导语 + 两张定死图纸（滚动描线）+ 第三张 DWG 在线浏览（3:1 提取 BOM / 上载 M3）
  *   ③ 页脚（SiteFooter）
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './components/AppIcon.vue'
-import ChatPanel from './components/ChatPanel.vue'
+import BomPanel from './components/BomPanel.vue'
 import DrawingSheet from './components/DrawingSheet.vue'
 import DrawingGearbox from './components/drawings/DrawingGearbox.vue'
 import DrawingShaft from './components/drawings/DrawingShaft.vue'
@@ -17,7 +17,7 @@ import PartCompare from './components/PartCompare.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import SiteHeader from './components/SiteHeader.vue'
 import { usePageProgress } from './composables/useScrollProgress.js'
-import { gearboxBom, shaftNotes } from './data/site.js'
+import { dwgBom, gearboxBom, shaftNotes } from './data/site.js'
 
 const progress = usePageProgress()
 const showTop = ref(false)
@@ -119,12 +119,21 @@ const shaftStages = [
 
         <div class="dwg-row">
           <DwgViewer file-name="法兰盘装配图.dwg" />
-          <ChatPanel />
+          <BomPanel
+            variant="card"
+            title="提取 BOM · 上载至 M3"
+            subtitle="从当前图纸提取 · 物料主数据"
+            action="提取"
+            doc-suffix="021"
+            :rows="dwgBom"
+            lead="从 DWG 图面的标题栏与明细栏提取零件清单，核对后上载至 M3。"
+            hint="提取依据图面明细栏与图号；上载后写入 M3 物料主数据与版本记录，同名不同版本进入校核队列。"
+          />
         </div>
 
         <p class="dwg-note">
           <AppIcon name="info" :size="14" />
-          演示内置一张示例图纸：支持滚轮缩放、拖拽平移、图层开关与两点测量。
+          演示内置一张示例图纸：支持滚轮缩放、拖拽平移、图层开关与两点测量；右侧可从图面提取 BOM 并上载至 M3。
           如需接入真实 DWG，可把 <code>&lt;DwgViewer&gt;</code> 的 <code>embed-url</code>
           指向内网转换服务或 ODA / Autodesk Platform Services 的在线视图地址。
         </p>
