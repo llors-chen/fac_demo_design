@@ -139,6 +139,48 @@ function toggleWatch() {
   }
 }
 
+/**
+ * 把本次上载的内容派发给浏览器插件（M3 Connector）
+ *   - window.postMessage：注入本页的 content script 监听
+ *   - CustomEvent('m3:bom-import')：另一种监听方式，任选其一
+ * 未安装插件时不会有任何副作用；payload 结构见 docs/M3-插件对接方案.md
+ */
+function announceImport() {
+  const detail = {
+    source: 'xinyi-web',
+    type: 'M3_BOM_IMPORT',
+    version: 1,
+    idempotencyKey: docNo.value,
+    target: {
+      system: 'M3',
+      tenant: 'PH-01',
+      site: '平湖工厂',
+      lib: props.targets?.[1]?.value || '物料主数据 / 2026',
+    },
+    docNo: docNo.value,
+    action: props.action,
+    issuedAt: new Date().toISOString(),
+    rows: props.rows.map((r) => ({
+      seq: r.seq,
+      code: r.code,
+      name: r.name,
+      spec: r.spec,
+      material: r.material,
+      qty: r.qty,
+      unit: r.unit,
+      total: r.total,
+    })),
+  }
+
+  try {
+    window.postMessage(detail, window.location.origin)
+    window.dispatchEvent(new CustomEvent('m3:bom-import', { detail }))
+    pushLog('已向浏览器插件派发 M3_BOM_IMPORT（等待回执）', 'ok')
+  } catch (err) {
+    pushLog('派发插件失败：' + String(err), 'warn')
+  }
+}
+
 function upload() {
   if (state.value === 'uploading') return
   state.value = 'uploading'
@@ -150,6 +192,7 @@ function upload() {
     state.value = 'uploaded'
     flashNotice(`BOM 已上载至 M3 · 单据 ${docNo.value}（演示）`, 3200)
     pushLog(`上载批次已提交 M3 · 单据 ${docNo.value}`, 'ok')
+    announceImport()
   }, 900)
 }
 
