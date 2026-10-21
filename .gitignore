@@ -4,3 +4,5 @@ dist-smoke/
 .npm-cache/
 *.local
 .DS_Store
+*.[pP][dD][fF]
+*.[uU][rR][lL]

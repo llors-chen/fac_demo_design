@@ -1,112 +1,118 @@
 <script setup>
 /**
- * 第 01 区 · 销售端 · 客需需求整理
+ * 01 · 销售端 · 客需需求粗整理
  *
- * 左侧：样例输入（可编辑的口语化客户记录）
- * 右侧：对话形式 —— 提交后助手「整理」为一份结构化书面需求单
- * 写死演示：无论输入什么，都按同一套字段输出；字段会尽量从文本里提取，提取不到用默认值。
+ * 业务流程：客户说话 → 销售整理要点 → AE 初判（哪一类产品、还缺什么）
+ * 输出是一份"粗"的初判，不填完整表单；详细表单填写在 01-00 按报表 500413 逐节完成。
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
-import {
-  attachmentPoints,
-  attachments,
-  intakeMeta,
-  intakeSample,
-  intakeSteps,
-  intakeTemplate,
-} from '../data/site.js'
+import { attachmentPoints, attachments, intakeMeta, intakeSample, intakeSteps } from '../data/site.js'
 
 /** 附件类型 → 线性图标 */
 const iconOf = (kind) => ({ pdf: 'file', dwg: 'ruler', img: 'grid', doc: 'newspaper' })[kind] || 'file'
 
 const attTotal = computed(() => {
-  const sum = attachments.reduce((s, a) => s + (parseFloat(a.size) || 0), 0)
-  return Math.round(sum * 10) / 10
+  const mb = (size) => {
+    const v = parseFloat(size) || 0
+    return /KB/i.test(size) ? v / 1024 : v
+  }
+  return Math.round(attachments.reduce((s, a) => s + mb(a.size), 0) * 10) / 10
 })
 const attParsed = computed(() => attachments.filter((a) => a.state.startsWith('已')).length)
 
 const raw = ref(intakeSample)
-const thinking = ref(false)
-const stepsDone = ref(intakeSteps.length)
-const lastRun = ref('09:26')
+const stage = ref(3) // 0 客户口述 → 1 销售整理 → 2 AE 初判中 → 3 初判卡
+const lastRun = ref('09:28')
 const runCount = ref(1)
-
-let timer = null
+let timers = []
 
 const nowTime = () => {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/**
- * 按模板分类整理：1 Project introduction / 2 Application information / 3 Specifications(3.1~3.5)
- * 能从口语文本里提取到的项用提取值，提取不到用模板默认值。
- */
-const sections = computed(() => {
+/** 从客户原话里抽取初判所需的关键信息（抽不到就给默认值） */
+const rough = computed(() => {
   const t = raw.value || ''
-  const all = (re) => {
-    const g = re.global ? re : new RegExp(re.source, re.flags + 'g')
-    return [...t.matchAll(g)].map((m) => m[0].trim().replace(/\s+/g, ' '))
-  }
-  const first = (re, fallback) => all(re)[0] || fallback
-
-  const kinds = ['法兰盘', '端盖', '轴承座', '轴套', '齿轮', '传动轴', '密封垫', '平键', '螺栓']
-  const kind = kinds.find((k) => t.includes(k))
-  const specs = [...new Set(all(/(?:DN|⌀|Φ|M)\s?\d+(?:\.\d+)?/gi).map((s) => s.replace(/\s/g, '')))]
-  const qtys = all(/(?:样件|首批|批量|订单|先要)[^，。；;\n]{0,10}\d+\s*(?:件|套|台|个)/g)
-  const dels = all(/\d+\s*(?:天|周|个月)/g)
-  const conds = all(/(?:温度|℃|度上下|转速|转以内|脂润滑|油润滑|连续跑|连续工作)[^，。；;\n]{0,12}/g)
-  const accept = all(/(?:材质证明|证明|国标|GB\/T\s?\d+|外观|毛刺|复检|探伤)[^，。；;\n]{0,10}/g)
+  const g1 = (re) => (t.match(re) || [])[1] || null
   const customer = t.match(/【(.+?)】/)?.[1]
-  const holes = t.match(/(\d+)\s*(?:个)?\s*孔[^，。；;\n]{0,8}/)
 
-  const override = {
-    customer: customer ? customer.replace(/·/g, ' · ').trim() : null,
-    condition: conds.length ? conds.slice(0, 3).join('，') : null,
-    qty: qtys.length ? qtys.join('；') : null,
-    delivery: dels.length ? dels.join('；') : null,
-    interface: specs.length
-      ? `${kind ? kind + ' ' : ''}${specs.join(' / ')}${holes ? `；${holes[0]}` : ''}${specs.length < 2 ? '；对接面尺寸以客户图纸为准' : ''}`
-      : null,
-    tests: accept.length ? accept.slice(0, 3).join('，') : null,
-    certification: first(/GB\/T\s?\d+[^\s，。；]*/, null),
+  const voltage = g1(/(\d{2,3})\s*V\b/i)
+  const force = g1(/(\d{3,4})\s*N\b/)
+  const speed = g1(/(\d+(?:\.\d+)?)\s*mm\/s/i)
+  const stroke = g1(/行程\s*(\d+)/)
+  const eau = t.match(/EAU\s*(\d+)/i)?.[1] || t.match(/(\d+)\s*套/)?.[1]
+  const weeks = g1(/样件\s*(\d+)\s*周/)
+  const canopen = /CANopen/i.test(t)
+  const posFb = /位置反馈/.test(t)
+  const m12 = /M12/i.test(t)
+  const ulNo = /UL\s*(?:先|暂)不/.test(t)
+
+  const params =
+    [
+      voltage && `${voltage} V`,
+      force && `${force} N`,
+      speed && `${speed} mm/s`,
+      stroke && `行程 ${stroke} mm`,
+    ]
+      .filter(Boolean)
+      .join(' / ') || '48 V / 3,500 N / 30 mm/s / 行程 50 mm'
+
+  const changes = [canopen && 'CANopen 控制板', m12 && 'M12 四芯线束', posFb && '绝对位置反馈'].filter(
+    Boolean,
+  )
+  const who = customer ? customer.replace(/·/g, ' · ').trim() : '越野机器人客户（王工）'
+
+  return {
+    customer: who,
+    icrm: 'iCRM-2026-0451',
+    family: '电动推杆（线性执行器）· CAHB 系列',
+    scene: 'off-road autonomous robot · steering wheel control',
+    params,
+    qty: eau ? `EAU ${eau} pcs` : 'EAU 50 pcs',
+    lead: weeks ? `样件 ${weeks} 周` : '样件 6 周（待评估）',
+    verdict: `可做，倾向 CAHB-22-D2E 基型${changes.length ? `；${changes.length} 处需改（${changes.join(' / ')}）` : ''}`,
+    missing: [
+      '静态载荷要求（客户只给了额定 / 峰值推力）',
+      '环境温度上限：客户说 -20~60 ℃，与平台 -40/+85 ℃ 需确认取舍',
+      ulNo ? '认证范围：CE 是、UL 不做 —— 需客户书面确认' : '认证范围：CE / UL 是否都要',
+    ],
+    bullets: [
+      `客户 / 项目：${who}；越野自主机器人转向执行机构换型`,
+      '应用：off-road autonomous robot，推杆推方向盘（原手轮机构）',
+      `关键参数：${params}`,
+      `数量 / 交期：${eau ? `EAU ${eau} pcs` : 'EAU 50 pcs'}；${weeks ? `样件 ${weeks} 周` : '样件 6 周'}；目标单价 ≤ ￥1,850`,
+      `定制点：${changes.length ? changes.join('、') : '暂无明确定制点，待 AE 判断'}`,
+      `认证 / 其他：${ulNo ? 'CE 即可、UL 暂不做' : '认证待确认'}；户外粉尘泥水、强振动`,
+    ],
   }
-
-  return intakeTemplate.map((sec) => ({
-    ...sec,
-    items: sec.items.map((it) => ({
-      ...it,
-      value: (it.from && override[it.from]) || it.value,
-      extracted: !!(it.from && override[it.from]),
-    })),
-  }))
 })
 
-const fieldCount = computed(() => sections.value.reduce((s, sec) => s + sec.items.length, 0))
 const charCount = computed(() => raw.value.length)
 
+function clearTimers() {
+  timers.forEach((t) => window.clearTimeout(t))
+  timers = []
+}
+
+/** 重新整理：客户口述 → 销售整理 → AE 初判 → 初判卡 */
 function run() {
-  if (thinking.value) return
-  thinking.value = true
-  stepsDone.value = 0
-  window.clearTimeout(timer)
-  intakeSteps.forEach((_, i) => {
-    window.setTimeout(() => (stepsDone.value = i + 1), 180 * (i + 1))
-  })
-  timer = window.setTimeout(() => {
-    thinking.value = false
-    lastRun.value = nowTime()
-    runCount.value += 1
-  }, 1050)
+  clearTimers()
+  stage.value = 0
+  stage.value = 1
+  timers.push(window.setTimeout(() => (stage.value = 2), 700))
+  timers.push(
+    window.setTimeout(() => {
+      stage.value = 3
+      lastRun.value = nowTime()
+      runCount.value += 1
+    }, 1500),
+  )
 }
 
-function resetSample() {
-  raw.value = intakeSample
-}
-
-onMounted(() => window.clearTimeout(timer))
-onBeforeUnmount(() => window.clearTimeout(timer))
+onMounted(() => clearTimers())
+onBeforeUnmount(() => clearTimers())
 </script>
 
 <template>
@@ -115,38 +121,39 @@ onBeforeUnmount(() => window.clearTimeout(timer))
       <header class="sec-head">
         <span class="sec-head__no" aria-hidden="true">01</span>
         <div>
-          <p class="kicker">销售端 · 客需需求整理</p>
-          <h3 class="sec-head__title">把客户的口语记录，整理成一份书面需求</h3>
+          <p class="kicker">销售端 · 客需需求粗整理</p>
+          <h3 class="sec-head__title">客户说话 → 销售整理 → AE 初判</h3>
         </div>
         <dl class="sec-head__meta">
-          <div><dt class="mono">来源</dt><dd>微信 / 电话记录</dd></div>
-          <div><dt class="mono">整理时间</dt><dd>{{ lastRun }}</dd></div>
-          <div><dt class="mono">输出</dt><dd>需求单 ×1</dd></div>
+          <div><dt class="mono">iCRM</dt><dd>{{ rough.icrm }}</dd></div>
+          <div><dt class="mono">初判时间</dt><dd>{{ lastRun }}</dd></div>
+          <div><dt class="mono">下一步</dt><dd>01-00 详填表单</dd></div>
         </dl>
       </header>
 
       <p class="sec-note">
-        左侧是销售拿到的原始记录（可自行编辑），点「提交整理」后，右侧助手会按
-        产品 / 规格 / 数量 / 交期 / 工况 / 验收 / 风险 逐项整理成书面需求，供后续研发对齐与排产使用。
+        第一步不做完整表单，只把客户的原话整理成可流转的要点：客户怎么说（原话）→ 销售整理成 6 条要点 →
+        AE 凭经验初判产品族、给出初步结论、列出缺失信息。确认「能做 / 要做」之后，才进入
+        <a class="sec-link" href="#req-flow">01-00 按报表 500413 逐节详填</a>。
       </p>
 
       <div class="intake__row">
-        <!-- 左：样例输入 -->
+        <!-- 左：客户原话 -->
         <div class="panel corner-box">
           <header class="panel__head">
-            <AppIcon name="file" :size="15" />
-            <h4 class="panel__title">样例输入 · 原始记录</h4>
+            <AppIcon name="mail" :size="15" />
+            <h4 class="panel__title">客户原话 · 原始记录</h4>
             <span class="panel__sub mono">可编辑</span>
           </header>
 
-          <textarea v-model="raw" class="raw scroll-thin" rows="11" aria-label="客户原始记录"></textarea>
+          <textarea v-model="raw" class="raw scroll-thin" rows="10" aria-label="客户原始记录"></textarea>
 
           <div class="intake__actions">
-            <button class="btn btn--sm btn--solid" type="button" :disabled="thinking" @click="run">
+            <button class="btn btn--sm btn--solid" type="button" @click="run">
               <AppIcon name="sparkle" :size="14" />
-              {{ thinking ? '整理中…' : '提交整理' }}
+              重新整理
             </button>
-            <button class="btn btn--sm" type="button" @click="resetSample">
+            <button class="btn btn--sm" type="button" @click="raw = intakeSample">
               <AppIcon name="refresh" :size="13" />
               恢复样例
             </button>
@@ -158,98 +165,128 @@ onBeforeUnmount(() => window.clearTimeout(timer))
               v-for="(s, i) in intakeSteps"
               :key="s"
               class="trace__item"
-              :class="{ 'is-done': stepsDone > i, 'is-on': thinking && stepsDone === i }"
+              :class="{ 'is-done': stage > i, 'is-on': stage === i }"
             >
               <span class="trace__dot">
-                <AppIcon v-if="stepsDone > i" name="check" :size="11" />
+                <AppIcon v-if="stage > i" name="check" :size="11" />
               </span>
               {{ s }}
             </li>
           </ol>
         </div>
 
-        <!-- 右：对话 + 书面需求 -->
+        <!-- 右：三段对话 + AE 初判卡 -->
         <div class="panel panel--chat corner-box">
           <header class="panel__head">
-            <span class="panel__avatar"><AppIcon name="sparkle" :size="17" /></span>
-            <h4 class="panel__title">需求整理助手</h4>
-            <span class="panel__sub mono">第 {{ runCount }} 次整理 · {{ lastRun }}</span>
+            <span class="panel__avatar"><AppIcon name="users" :size="17" /></span>
+            <h4 class="panel__title">需求粗整理 · 三段对话</h4>
+            <span class="panel__sub mono">第 {{ runCount }} 次 · {{ lastRun }}</span>
           </header>
 
           <div class="stream">
-            <!-- 销售原始输入 -->
-            <div class="msg msg--user">
-              <div class="msg__bubble">
-                <p class="msg__raw">{{ raw }}</p>
+            <!-- ① 客户口述 -->
+            <div class="turn turn--cust">
+              <span class="turn__avatar mono">客</span>
+              <div class="turn__body">
+                <span class="turn__who mono">客户 · 王工（微信语音转写）</span>
+                <div class="turn__bubble">
+                  <p class="turn__raw">{{ raw }}</p>
+                </div>
               </div>
-              <span class="msg__time mono">销售 · 09:12</span>
             </div>
 
-            <!-- 整理中 -->
-            <div v-if="thinking" class="msg msg--bot">
-              <div class="msg__bubble msg__bubble--typing"><span></span><span></span><span></span></div>
-              <span class="msg__time mono">正在整理为书面需求…</span>
+            <!-- ② 销售整理 -->
+            <div v-if="stage >= 1" class="turn turn--sales">
+              <span class="turn__avatar mono">销</span>
+              <div class="turn__body">
+                <span class="turn__who mono">销售 · 陈工 · 09:20</span>
+                <div class="turn__bubble">
+                  <p>我把客户的话拆成 6 条，你看下有没有理解偏的：</p>
+                  <ul class="turn__list">
+                    <li v-for="b in rough.bullets" :key="b">{{ b }}</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            <!-- 整理结果 -->
-            <template v-else>
-              <div class="msg msg--bot">
-                <div class="msg__bubble">
+            <!-- ③ AE 初判 -->
+            <div v-if="stage === 2" class="turn turn--ae">
+              <span class="turn__avatar mono">AE</span>
+              <div class="turn__body">
+                <span class="turn__who mono">AE · 李工</span>
+                <div class="turn__bubble turn__bubble--typing"><span></span><span></span><span></span></div>
+              </div>
+            </div>
+            <div v-else-if="stage >= 3" class="turn turn--ae">
+              <span class="turn__avatar mono">AE</span>
+              <div class="turn__body">
+                <span class="turn__who mono">AE · 李工 · 09:28</span>
+                <div class="turn__bubble">
                   <p>
-                    已把这段口语记录按模板整理为书面需求：3 个分类、共 {{ fieldCount }} 项；
-                    其中规格、数量、交期、工况等按原文提取（带 <em class="msg__mark">已提取</em> 标记），
-                    未提及项沿用模板默认值。
+                    方向没问题，属于 <b>CAHB 系列电动推杆</b>。先给个初判：能做，倾向
+                    <b>CAHB-22-D2E</b> 基型（48 V / 3,500 N / 37 mm/s / 行程 50）。
                   </p>
+                  <p class="turn__ask">但要填 500413 还缺 3 项，需要你跟客户确认：</p>
+                  <ul class="turn__list turn__list--ask">
+                    <li v-for="m in rough.missing" :key="m">{{ m }}</li>
+                  </ul>
                 </div>
-                <span class="msg__time mono">需求整理助手 · {{ lastRun }}</span>
               </div>
+            </div>
 
-              <div class="req">
-                <header class="req__head">
-                  <span class="req__badge mono">书面需求</span>
-                  <span class="req__no mono">{{ intakeMeta.no }}</span>
-                  <span class="req__state mono">{{ intakeMeta.state }}</span>
-                </header>
-
-                <section v-for="sec in sections" :key="sec.no" class="req__sec">
-                  <h5 class="req__sec-title">
-                    <span class="req__sec-no mono">{{ sec.no }}</span>
-                    <span class="req__sec-en">{{ sec.title }}</span>
-                    <span class="req__sec-zh">{{ sec.zh }}</span>
-                  </h5>
-                  <dl class="req__body">
-                    <div v-for="it in sec.items" :key="it.key" class="req__row">
-                      <dt class="mono">
-                        <span v-if="it.no" class="req__item-no">{{ it.no }}</span>
-                        {{ it.label || it.title }}
-                        <em v-if="it.title" class="req__item-en">{{ it.title }}</em>
-                      </dt>
-                      <dd>
-                        {{ it.value }}
-                        <em v-if="it.extracted" class="req__flag mono">已提取</em>
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <div class="req__risk">
-                  <AppIcon name="info" :size="13" />
-                  <span><b class="mono">风险 / 待确认</b>{{ intakeMeta.risk }}</span>
+            <!-- ④ AE 初判卡（粗） -->
+            <div v-if="stage >= 3" class="rough">
+              <header class="rough__head">
+                <span class="rough__badge mono">AE 初判</span>
+                <span class="rough__no mono">{{ intakeMeta.no }}</span>
+                <span class="rough__state mono">粗整理 · 待详细表单确认</span>
+              </header>
+              <dl class="rough__body">
+                <div class="rough__row">
+                  <dt class="mono">客户 / iCRM</dt>
+                  <dd>{{ rough.customer }} · {{ rough.icrm }}</dd>
                 </div>
-
-                <footer class="req__foot">
-                  <button class="btn btn--sm" type="button">
-                    <AppIcon name="download" :size="13" />
-                    导出需求单
-                  </button>
-                  <button class="btn btn--sm" type="button">
-                    <AppIcon name="send" :size="13" />
-                    转产品目录检索
-                  </button>
-                  <span class="req__hint mono">下一步：第 02 区 检索产品目录 · 图纸与 BOM</span>
-                </footer>
-              </div>
-            </template>
+                <div class="rough__row">
+                  <dt class="mono">产品族</dt>
+                  <dd>{{ rough.family }}</dd>
+                </div>
+                <div class="rough__row">
+                  <dt class="mono">应用</dt>
+                  <dd>{{ rough.scene }}</dd>
+                </div>
+                <div class="rough__row">
+                  <dt class="mono">关键参数 <em class="rough__flag">口述</em></dt>
+                  <dd>{{ rough.params }}</dd>
+                </div>
+                <div class="rough__row">
+                  <dt class="mono">数量 / 交期</dt>
+                  <dd>{{ rough.qty }} · {{ rough.lead }}</dd>
+                </div>
+                <div class="rough__row">
+                  <dt class="mono">初步结论</dt>
+                  <dd class="rough__ok">{{ rough.verdict }}</dd>
+                </div>
+                <div class="rough__row">
+                  <dt class="mono">缺失信息</dt>
+                  <dd>
+                    <ul class="rough__missing">
+                      <li v-for="m in rough.missing" :key="m">{{ m }}</li>
+                    </ul>
+                  </dd>
+                </div>
+              </dl>
+              <footer class="rough__foot">
+                <button class="btn btn--sm" type="button">
+                  <AppIcon name="download" :size="13" />
+                  导出初判
+                </button>
+                <a class="btn btn--sm btn--solid" href="#req-flow">
+                  <AppIcon name="arrowRight" :size="13" />
+                  进入 01-00 逐节详填
+                </a>
+                <span class="rough__hint mono">粗整理到此为止 · 详细表单见 01-00</span>
+              </footer>
+            </div>
           </div>
         </div>
       </div>
@@ -292,7 +329,7 @@ onBeforeUnmount(() => window.clearTimeout(timer))
           <ul class="attach__list">
             <li v-for="p in attachmentPoints" :key="p">{{ p }}</li>
           </ul>
-          <span class="attach__hint mono">附件要点会随需求单一起流转给研发与图纸检索</span>
+          <span class="attach__hint mono">附件要点会随初判一起流转给 01-00 详填与后续检索</span>
         </div>
       </div>
     </div>
@@ -304,7 +341,7 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   padding: clamp(30px, 4.4vw, 64px) 0 0;
 }
 
-/* 区块抬头（与其它区块统一） */
+/* 区块抬头 */
 .sec-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -343,9 +380,14 @@ onBeforeUnmount(() => window.clearTimeout(timer))
 }
 .sec-note {
   margin-top: 12px;
-  max-width: 96ch;
+  max-width: 100ch;
   font-size: 0.9rem;
   color: var(--ink-3);
+}
+.sec-link {
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .intake__row {
@@ -393,7 +435,7 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   flex: none;
 }
 
-/* 原始记录输入 */
+/* 原始记录 */
 .raw {
   width: 100%;
   resize: vertical;
@@ -460,63 +502,103 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   color: var(--accent-ink);
 }
 
-/* 对话流 */
+/* 三段对话 */
 .stream {
   display: grid;
   gap: 12px;
   align-content: start;
 }
-.msg {
+.turn {
   display: grid;
-  gap: 4px;
-  max-width: 94%;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
 }
-.msg--user {
-  justify-self: end;
-  justify-items: end;
+.turn__avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rule-2);
+  border-radius: 0 var(--r-sm) 0 var(--r-sm);
+  background: var(--paper-3);
+  color: var(--ink-2);
+  font-size: 0.62rem;
+  margin-top: 14px;
 }
-.msg__bubble {
-  padding: 10px 14px;
+.turn--sales .turn__avatar {
+  border-color: var(--accent-2);
+  background: var(--accent-3);
+  color: var(--accent-ink);
+}
+.turn--ae .turn__avatar {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.turn__body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.turn__who {
+  font-size: 0.48rem;
+}
+.turn__bubble {
+  padding: 10px 13px;
   border: 1px solid var(--rule);
   border-radius: var(--r-md) var(--r-md) var(--r-md) 0;
   background: var(--surface);
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   line-height: 1.8;
   color: var(--ink-2);
-  box-shadow: var(--shadow-s);
 }
-.msg--bot .msg__bubble {
+.turn--cust .turn__bubble {
+  background: var(--paper-2);
+  border-style: dashed;
+}
+.turn--sales .turn__bubble {
   border-left: 3px solid var(--accent);
 }
-.msg--user .msg__bubble {
-  border-radius: var(--r-md) var(--r-md) 0 var(--r-md);
-  background: var(--accent-3);
-  border-color: var(--accent-2);
-  color: var(--ink);
+.turn--ae .turn__bubble {
+  border-left: 3px solid var(--ink);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.55)),
+    var(--paper-2);
 }
-.msg__raw {
+.turn__raw {
   white-space: pre-line;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
 }
-.msg__time {
-  font-size: 0.5rem;
+.turn__list {
+  margin: 6px 0 0;
+  padding-left: 1.1em;
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  display: grid;
+  gap: 3px;
 }
-.msg__bubble--typing {
+.turn__list--ask {
+  color: var(--accent-ink);
+}
+.turn__ask {
+  margin-top: 8px;
+  font-size: 0.84rem;
+}
+.turn__bubble--typing {
   display: inline-flex;
   gap: 5px;
   padding: 14px 16px;
 }
-.msg__bubble--typing span {
+.turn__bubble--typing span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--ink-3);
   animation: typing 1.2s ease-in-out infinite;
 }
-.msg__bubble--typing span:nth-child(2) {
+.turn__bubble--typing span:nth-child(2) {
   animation-delay: 0.16s;
 }
-.msg__bubble--typing span:nth-child(3) {
+.turn__bubble--typing span:nth-child(3) {
   animation-delay: 0.32s;
 }
 @keyframes typing {
@@ -532,149 +614,89 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   }
 }
 
-/* 书面需求单 */
-.req {
+/* AE 初判卡 */
+.rough {
   border: 1px solid var(--rule-2);
   border-radius: var(--r-md) 0 var(--r-md) 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.5)),
-    var(--paper-2);
+  background: var(--surface);
   box-shadow: var(--shadow-s);
   overflow: hidden;
 }
-.req__head {
+.rough__head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   border-bottom: 3px double var(--rule-3);
+  background: var(--paper-2);
 }
-.req__badge {
+.rough__badge {
   padding: 2px 8px;
   border-radius: var(--r-pill);
   background: var(--ink);
   color: var(--paper);
-  font-size: 0.5rem;
+  font-size: 0.48rem;
 }
-.req__no {
-  font-size: 0.68rem;
-  color: var(--ink-2);
+.rough__no {
+  font-size: 0.64rem;
 }
-.req__state {
+.rough__state {
   margin-left: auto;
   padding: 2px 8px;
   border: 1px solid var(--accent-2);
   border-radius: var(--r-pill);
   background: var(--accent-3);
   color: var(--accent-ink);
-  font-size: 0.5rem;
+  font-size: 0.46rem;
 }
-.req__sec {
-  padding: 10px 12px 2px;
-}
-.req__sec + .req__sec {
-  border-top: 1px dashed var(--rule);
-}
-.req__sec-title {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--rule);
-}
-.req__sec-no {
-  display: grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: var(--r-xs);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 0.56rem;
-}
-.req__sec-en {
-  color: var(--ink);
-}
-.req__sec-zh {
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--ink-3);
-}
-.req__body {
+.rough__body {
   margin: 0;
-  padding: 0;
+  padding: 6px 12px 8px;
 }
-.req__row {
+.rough__row {
   display: grid;
-  grid-template-columns: 8.6em minmax(0, 1fr);
+  grid-template-columns: 8.2em minmax(0, 1fr);
   gap: 10px;
   padding: 6px 0;
   border-bottom: 1px dotted var(--rule);
 }
-.req__row:last-child {
+.rough__row:last-child {
   border-bottom: none;
 }
-.req__row dt {
-  font-size: 0.52rem;
+.rough__row dt {
+  font-size: 0.5rem;
   padding-top: 3px;
   display: flex;
   align-items: baseline;
   gap: 4px;
   flex-wrap: wrap;
 }
-.req__item-no {
-  font-size: 0.5rem;
-  color: var(--accent-ink);
-}
-.req__item-en {
-  font-size: 0.46rem;
-  font-style: normal;
-  color: var(--ink-4);
-}
-.req__row dd {
+.rough__row dd {
   margin: 0;
   font-size: 0.86rem;
   line-height: 1.7;
   color: var(--ink-2);
 }
-.req__flag {
-  margin-left: 6px;
-  font-size: 0.44rem;
+.rough__flag {
+  font-size: 0.42rem;
   font-style: normal;
   padding: 1px 5px;
   border-radius: var(--r-pill);
-  background: var(--accent-3);
+  border: 1px solid var(--rule-2);
+  color: var(--ink-4);
+}
+.rough__ok {
   color: var(--accent-ink);
 }
-.req__risk {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 10px 12px 0;
-  padding: 8px 10px;
-  border: 1px solid var(--accent-2);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-  background: var(--accent-3);
-  color: var(--accent-ink);
-  font-size: 0.78rem;
-  line-height: 1.65;
+.rough__missing {
+  margin: 0;
+  padding-left: 1.05em;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  display: grid;
+  gap: 2px;
 }
-.req__risk b {
-  margin-right: 6px;
-  font-size: 0.5rem;
-}
-.msg__mark {
-  font-style: normal;
-  font-size: 0.62rem;
-  padding: 1px 5px;
-  border-radius: var(--r-pill);
-  background: var(--accent-3);
-  color: var(--accent-ink);
-}
-.req__foot {
+.rough__foot {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -683,9 +705,9 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   border-top: 1px solid var(--rule);
   background: var(--paper-3);
 }
-.req__hint {
+.rough__hint {
   margin-left: auto;
-  font-size: 0.5rem;
+  font-size: 0.46rem;
 }
 
 /* 客户附件信息 */
@@ -750,10 +772,6 @@ onBeforeUnmount(() => window.clearTimeout(timer))
   border-color: var(--accent-2);
   background: var(--accent-3);
   color: var(--accent-ink);
-}
-.att__icon.is-dwg {
-  border-color: var(--rule-2);
-  background: var(--paper-3);
 }
 .att__main {
   min-width: 0;

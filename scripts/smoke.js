@@ -63,7 +63,11 @@ const root = document.getElementById('app')
 const q = (s) => root.querySelector(s)
 const qa = (s) => [...root.querySelectorAll(s)]
 const txt = (s) => q(s)?.textContent.replace(/\s+/g, ' ').trim() || ''
-const click = (el) => el?.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+const click = (el) => {
+  if (el && typeof el.dispatchEvent === 'function') {
+    el.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+  }
+}
 const submit = (form) =>
   form?.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }))
 const type = (input, value) => {
@@ -74,20 +78,52 @@ const type = (input, value) => {
 const r = {}
 
 /* ---- 结构 ---- */
-r.sections = ['req-intake', 'catalog-chat', 'quote-chat'].filter((id) => q(`#${id}`))
+r.sections = ['req-intake', 'req-flow', 'catalog-chat', 'factory-sim', 'quote-chat'].filter((id) => q(`#${id}`))
 r.oldSectionsGone = !q('#compare') && !q('#sheet-01') && !q('#req-align')
+
+/* ---- 01-00 流程化工程细节对齐 ---- */
+r.flowSteps = qa('#req-flow .step').length
+r.flowDocs = qa('#req-flow .doc').length
+r.flowTitle = txt('#req-flow .sec-head__title')
+click(qa('#req-flow .step')[3])
+await wait(200)
+r.flowFormCode = txt('#req-flow .form__badge')
+r.flowFormSection = txt('#req-flow .form__section')
+
+/* AE 复核：对照表 + 询问按钮 + 发送 */
+click(qa('#req-flow .step')[6])
+await wait(200)
+r.reviewRows = qa('#req-flow .rtable tbody tr').length
+r.reviewAskBtns = qa('#req-flow .rflag--btn').length
+r.reviewAsked = qa('#req-flow .rflag--btn.is-asked').length
+click(qa('#req-flow .askbox .btn'))
+await wait(120)
+r.reviewSent = !!q('#req-flow .review__sent')
+
+/* 客户答复 */
+click(qa('#req-flow .step')[7])
+await wait(200)
+r.qaItems = qa('#req-flow .qa__item').length
+
+/* 可行性 + 三方确认单 */
+click(qa('#req-flow .step')[8])
+await wait(200)
+r.flowFeasible = txt('#req-flow .form__section')
+r.flowChecks = qa('#req-flow .check').length
+click(qa('#req-flow .step')[9])
+await wait(200)
+r.confirmRows = qa('#req-flow .ctable tbody tr').length
+r.confirmParties = qa('#req-flow .parties .party').length
 
 /* ---- 01 需求整理 + 附件 ---- */
 r.intakeSample = q('#req-intake .raw')?.value.length || 0
 click(q('#req-intake .intake__actions .btn'))
-await wait(1200)
-r.reqSections = qa('#req-intake .req__sec').length
-r.reqFields = qa('#req-intake .req__row').length
-r.reqSubs = qa('#req-intake .req__item-no')
-  .map((e) => e.textContent.trim())
-  .join(',')
-r.reqTitle1 = txt('#req-intake .req__sec-title')
-r.reqExtracted = txt('#req-intake .req').includes('DN160')
+await wait(1800)
+r.stages = qa('#req-intake .turn').length
+r.roughRows = qa('#req-intake .rough__row').length
+r.roughMissing = qa('#req-intake .rough__missing li').length
+r.roughVerdict = txt('#req-intake .rough__ok')
+r.reqExtracted = txt('#req-intake .rough').includes('CAHB-22')
 r.attachments = qa('#req-intake .att').length
 
 /* ---- 02 产品目录匹配分支 ---- */
@@ -134,6 +170,22 @@ submit(q('#catalog-chat .chat-input'))
 await wait(1200)
 r.branchKept = !!q('#catalog-chat .cm__bar')
 
+/* ---- 02-00 车间模拟 ---- */
+r.simLines = qa('#factory-sim .line').length
+r.simParts = qa('#factory-sim .pcell').length
+r.simProducts = qa('#factory-sim .prow').length
+r.simStaff = qa('#factory-sim .srow').length
+r.simLabor = qa('#factory-sim .ltable tbody tr').length
+r.simKpis = qa('#factory-sim .kpi').length
+r.simSatBefore = txt('#factory-sim .kpi--accent .kpi__value')
+r.simCostBefore = txt('#factory-sim .ltable tfoot td:last-child')
+click(qa('#factory-sim .shift')[1])
+await wait(150)
+r.simSatAfter = txt('#factory-sim .kpi--accent .kpi__value')
+r.simCostAfter = txt('#factory-sim .ltable tfoot td:last-child')
+click(qa('#factory-sim .pill')[1])
+await wait(100)
+r.simDimmed = qa('#factory-sim .pcell.is-dim').length
 /* ---- 03 销售回馈与报价 ---- */
 r.quoteShell = !!q('#quote-chat .chat-shell')
 r.quotePreInput = txt('#quote-chat .msg--user .msg__bubble')
@@ -159,11 +211,17 @@ const fail = (m) => {
   process.exit(1)
 }
 if (errors.length) fail('挂载存在错误')
-if (r.sections.length !== 3 || !r.oldSectionsGone) fail('区块结构异常')
-if (r.intakeSample < 80 || r.reqSections !== 3 || r.reqFields !== 13) fail('01 需求整理异常')
-if (r.reqSubs !== '3.1,3.2,3.3,3.4,3.5' || !r.reqTitle1.includes('Project introduction')) {
-  fail('01 模板分类异常')
-}
+if (r.sections.length !== 5 || !r.oldSectionsGone) fail('区块结构异常')
+if (r.sections.join(',') !== 'req-intake,req-flow,catalog-chat,factory-sim,quote-chat') fail('区块顺序异常：' + r.sections.join(','))
+if (r.flowSteps !== 9 || r.flowDocs !== 4 || !r.flowTitle.includes('销售端工程细节对齐')) fail('01-00 流程异常')
+if (!r.flowFormCode.includes('500413') || !r.flowFormSection.includes('3.2')) fail('01-00 报表章节异常')
+if (r.reviewRows !== 7 || r.reviewAskBtns !== 3 || r.reviewAsked !== 3) fail('01-00 AE 复核对照表异常')
+if (!r.reviewSent) fail('01-00 询问发送未生效')
+if (r.qaItems !== 3) fail('01-00 客户答复异常')
+if (!r.flowFeasible.includes('Feasibility')) fail('01-00 可行性章节异常')
+if (r.confirmRows !== 9 || r.confirmParties !== 3) fail('01-00 三方确认单异常')
+if (r.intakeSample < 80 || !r.roughVerdict.includes('CAHB-22')) fail('01 初判异常')
+if (r.stages < 3 || r.roughRows !== 7 || r.roughMissing !== 3) fail('01 粗整理异常')
 if (!r.reqExtracted || r.attachments !== 5) fail('01 提取 / 附件异常')
 if (!r.catalogShell || r.branches !== 2 || r.groups !== 3 || r.products !== 3) fail('02 目录分支异常')
 if (r.productBomRows !== 5 || !r.emptyState || !r.dwgShown) fail('02 产品图纸 / 空态异常')
@@ -171,6 +229,9 @@ if (!r.customBar.includes('法兰盘 DN160') || r.innerTabs !== 4 || r.cats !== 
   fail('02 客制化分支异常')
 }
 if (r.catsFiltered !== 4 || !r.dragging || !r.assembled || !r.branchKept) fail('02 客制化交互异常')
+if (r.simLines !== 4 || r.simParts !== 200 || r.simProducts !== 20 || r.simStaff !== 7 || r.simKpis !== 6) fail('02-00 车间模拟异常')
+if (r.simLabor !== 6 || r.simSatBefore === r.simSatAfter || r.simCostBefore === r.simCostAfter) fail('02-00 班次联动异常')
+if (r.simDimmed < 10) fail('02-00 库存筛选未生效')
 if (!r.quoteShell || r.quoteRows !== 4 || r.tiers !== 3 || r.gantt !== 5) fail('03 报价异常')
 if (r.quoteTotal1 === r.quoteTotal2) fail('03 数量档位未联动合计')
 if (!r.feedback.includes('客户您好')) fail('03 回馈话术缺失')

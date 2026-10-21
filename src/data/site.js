@@ -21,20 +21,33 @@ export const processLog = [
   {
     no: '01',
     anchor: 'req-intake',
-    title: '销售端 · 客需需求整理',
-    meta: '需求单 REQ-20261020-007',
+    title: '销售端 · 客需需求粗整理',
+    meta: '客户原话 → 销售要点 → AE 初判',
     status: '已完成',
-    note: '客户口语记录 + 5 个客户附件 → 结构化书面需求（产品 / 规格 / 数量 / 交期 / 工况 / 验收 / 风险）',
+    note: '客户口述（越野机器人转向 / 48 V / 3,500 N）+ 5 个附件；销售整理 6 条要点，AE 初判为 CAHB 系列并列出 3 项缺失信息',
     times: [
-      { label: '收到客户微信记录与附件', time: '09:12' },
-      { label: '整理为书面需求单', time: '09:26' },
+      { label: '客户口述 + 附件', time: '09:12' },
+      { label: 'AE 初判与缺失信息', time: '09:28' },
+    ],
+  },
+  {
+    no: '01-00',
+    anchor: 'req-flow',
+    title: '流程化 · 销售端工程细节对齐',
+    meta: '报表 500413 / 500425',
+    status: '已完成',
+    note: '系统替销售起草并补齐 500413 → 销售逐节确认 → AE 对照客户原文二次复核（3 处勾选询问客户）→ 客户答复回填 → 客户 / 销售 / AE 三方确认单；10 步 / 37 分钟',
+    times: [
+      { label: '系统起草 500413', time: '09:31' },
+      { label: 'AE 复核 · 发出询问', time: '09:57' },
+      { label: '三方确认 · 系统归档', time: '10:08' },
     ],
   },
   {
     no: '02',
     anchor: 'catalog-chat',
     title: '产品目录检索 · 图纸与 BOM',
-    meta: '3 大类 / 6 个产品 / 4 个有图纸',
+    meta: '3 大类 / 6 个产品 / 3 个有图纸',
     status: '已上载 M3',
     note: '两个分支：① 产品目录匹配（大分类 → 小分类产品 → 有图纸才展开看图与 BOM）；② 客制化目标匹配（历史零件组装与规格对比）',
     times: [
@@ -43,10 +56,22 @@ export const processLog = [
     ],
   },
   {
+    no: '02-00',
+    anchor: 'factory-sim',
+    title: '车间模拟 · 产能与人力',
+    meta: '4 条线 / 200 种零件 / 20 种成品',
+    status: '运行中',
+    note: '人工延迟饱和度 86%（推荐 82%）· 平均成品延迟 6.8 h · 人力 359 h / 人工成本 ￥13,642',
+    times: [
+      { label: '白班开班 · 看板刷新', time: '11:40' },
+      { label: '切换到夜班复核', time: '11:46' },
+    ],
+  },
+  {
     no: '03',
     anchor: 'quote-chat',
     title: '销售端 · 回馈与报价',
-    meta: '含税 ￥35,030 · 样件 10 天',
+    meta: '含税合计 · 样件交期',
     status: '进行中',
     note: '汇总匹配结果 → 报价明细（数量档位 / 折扣 / 税）+ 预估交期甘特 + 前提与风险 + 转客户话术',
     times: [
@@ -56,66 +81,208 @@ export const processLog = [
   },
 ]
 
+
+
 /** 第 01 区：客户附件信息（销售从客户处获得的 PDF / 图纸 / 图片等） */
+
+/** 第 01 区：书面需求模板、样例与附件（口径：CAHB 电动推杆 / 500413 报表） */
+
+/** 第 01 区：书面需求模板（按 500413 的 1/2/3/4/5 五节组织） */
+export const intakeMeta = {
+  no: 'REQ-20261021-001',
+  state: '待产品目录匹配',
+  risk:
+    '静态载荷 6,000 N 待按 CAHB-22 曲线校核（可能加加强壳体，成本 +8%）；CANopen 控制板需打样（样件 8 周）；终端境外，出口管制需先做合规初筛',
+}
+
+export const intakeTemplate = [
+  {
+    no: '1',
+    title: 'Project introduction',
+    zh: '项目介绍',
+    items: [
+      { key: 'customer', label: '客户 / 来源', value: 'Ewellix 平湖 · 越野机器人客户（王工）', from: 'customer' },
+      { key: 'icrm', label: 'iCRM ID', value: 'iCRM-2026-0451' },
+      { key: 'project', label: '项目 / 用途', value: '自主机器人转向执行机构 · 电动推杆换型' },
+      { key: 'timing', label: 'timing plan', value: '样件 8 周 → 小批 12 周 → SOP 22 周' },
+      { key: 'volume', label: 'volume', value: 'EAU 50 pcs', from: 'qty' },
+      { key: 'sc', label: 'target SC', value: '目标单价 ≤ ￥1,850 / 件' },
+    ],
+  },
+  {
+    no: '2',
+    title: 'Application information',
+    zh: '应用信息',
+    items: [
+      {
+        key: 'scene',
+        label: 'function description',
+        value: 'off road autonomous robot，actuator 用于 steering wheel control',
+      },
+      {
+        key: 'env',
+        label: 'environment description',
+        value: '户外越野：粉尘 / 泥水 / -20~60 ℃ / 强振动',
+      },
+      { key: 'freq', label: 'frequency of use', value: '每班约 400 次往复，两班制', from: 'freq' },
+      { key: 'life', label: 'life expectancy', value: '整机 5 年；推杆往复 ≥ 60 万次', from: 'life' },
+    ],
+  },
+  {
+    no: '3',
+    title: 'Specifications',
+    zh: '规格',
+    items: [
+      {
+        no: '3.1',
+        key: 'performance',
+        title: 'Performance',
+        zh: '性能',
+        value:
+          '48 V DC（40~55 V）；额定 3,500 N / 峰值 4,500 N；37 mm/s；占空比 20%（85 s on / 340 s off）；额定电流 ≤ 6 A',
+        from: 'perf',
+      },
+      {
+        no: '3.2',
+        key: 'functions',
+        title: 'Functions',
+        zh: '功能',
+        value: '绝对位置反馈 0~5 V；内置限位 + 外部急停；CANopen；自锁 + 后备螺母',
+        from: 'func',
+      },
+      {
+        no: '3.3',
+        key: 'interface',
+        title: 'Installation interface',
+        zh: '安装接口',
+        value:
+          '行程 50 mm；缩回长 ≈ 366 mm；前叉耳 ⌀12.2 H11 / 后耳环 10 H11；线长 1.5 m；连接器 M12 A 编码 4 芯',
+        from: 'iface',
+      },
+      {
+        no: '3.4',
+        key: 'tests',
+        title: 'Tests',
+        zh: '测试',
+        value:
+          '-40 / +85 ℃；随机振动 5~500 Hz；冲击 30 g / 11 ms；EMC EN 61000-6-2/-6-4；IP66M / IP69K；噪声 ≤ 65 dB(A)',
+        from: 'tests',
+      },
+      {
+        no: '3.5',
+        key: 'certification',
+        title: 'Certification',
+        zh: '认证',
+        value: 'CE；UL 暂不要求（已写入假设条款）',
+        from: 'cert',
+      },
+    ],
+  },
+  {
+    no: '4',
+    title: 'Other',
+    zh: '其他',
+    items: [
+      { key: 'export', label: 'export control', value: '终端在境外 → 需合规初筛（ECCN 初判）', from: 'export' },
+      { key: 'pack', label: 'packaging / labeling', value: '单件气泡膜 + 纸箱（10 件/箱）；图号 + 批次 + 序列号激光打标' },
+      { key: 'spare', label: 'spare parts', value: '首批随货 2 件备件' },
+    ],
+  },
+  {
+    no: '5',
+    title: 'Feasibility assessment',
+    zh: '可行性评估',
+    items: [
+      { key: 'verdict', label: '结论', value: '☒ Feasible　☐ Not feasible', from: 'feasible' },
+      {
+        key: 'base',
+        label: 'customization base',
+        value: 'CAHB-22-D2E（EW000970459：48 V / 3,500 N / 37 mm/s / 行程 50）',
+      },
+      {
+        key: 'points',
+        label: 'customized point',
+        value: '① CANopen 控制板　② M12 连接器 + 1.5 m 线束　③ 绝对位置反馈（沿用 22 系列选配）',
+      },
+      { key: 'open', label: '待校核', value: '静态载荷 6,000 N（按 22 系列曲线）' },
+    ],
+  },
+]
+
+/** 第 01 区：客户口语记录样例（可编辑） */
+export const intakeSample = [
+  '【越野机器人客户 王工 · iCRM-2026-0451 · 09:12】',
+  '我们那台越野自主机器人转向要改成电控，想用你们家的电动推杆直接推方向盘，原来是手轮机构。',
+  '电池是 48V 平台，要求额定推力 3500N、峰值 4500N，速度 30mm/s 以上，行程 50 就够了。',
+  '主控要 CANopen，还要绝对位置反馈，线束统一 M12 四芯、1.5 米。',
+  '户外跑，粉尘泥水都有，-20 到 60 度，震动很大。整机 5 年，推杆得 60 万次以上。',
+  '一年 50 套，样件 6 周能不能给？目标单价 1850 以内。CE 就行，UL 先不做。',
+].join('\n')
+
+/** 第 01 区：整理过程 */
+export const intakeSteps = ['客户口述（原话）', '销售整理要点', 'AE 初判与缺失信息']
+
+/** 第 01 区：客户附件（真实参考资料） */
 export const attachments = [
   {
     id: 'att-1',
-    name: '对接面尺寸图.pdf',
+    name: '500413 Customer requirement assessment.pdf',
     kind: 'pdf',
-    size: '3.4 MB',
-    from: '王工 · 微信',
+    size: '152 KB',
+    from: '客户回传',
     state: '已解析',
-    note: '1 页 · 8 处标注',
-    key: '对接面 8×⌀13 通孔均布',
+    note: 'R02 · 5 节中已填 2 节',
+    key: 'EAU 50 pcs / 越野机器人转向控制',
   },
   {
     id: 'att-2',
-    name: '原法兰盘旧图.dwg',
-    kind: 'dwg',
-    size: '2.1 MB',
-    from: '客户资料库',
-    state: '待解析',
-    note: 'A2 · V2',
-    key: '旧版结构参考',
+    name: '500425 Customer requirement assessment.pdf',
+    kind: 'pdf',
+    size: '124 KB',
+    from: '客户提供',
+    state: '已解析',
+    note: 'R01 · 空白模板',
+    key: '报表结构基准（1~5 节）',
   },
   {
     id: 'att-3',
-    name: '客户邮件截图.png',
-    kind: 'img',
-    size: '1.2 MB',
-    from: '王工 · 微信',
-    state: '已识别',
-    note: '1920 × 1080',
-    key: '交期与数量口径',
+    name: 'EW000970173_CAHB20E_Rev1.1.pdf',
+    kind: 'pdf',
+    size: '1.1 MB',
+    from: '工程提供',
+    state: '已解析',
+    note: 'Rev 1.1 · 规格图',
+    key: 'CAHB-20：24 V / 4,500 N / 5.5 mm/s / 行程 300',
   },
   {
     id: 'att-4',
-    name: '工况说明.docx',
-    kind: 'doc',
-    size: '240 KB',
-    from: '王工 · 邮件',
+    name: 'EW000970459_CAHB22E_Rev1.1.pdf',
+    kind: 'pdf',
+    size: '1.2 MB',
+    from: '工程提供',
     state: '已解析',
-    note: '2 页',
-    key: '80 ℃ / 3000 r/min / 脂润滑',
+    note: 'Rev 1.1 · 规格图',
+    key: 'CAHB-22：48 V / 3,500 N / 37 mm/s / 行程 50',
   },
   {
     id: 'att-5',
-    name: '渗油部位照片.jpg',
+    name: '转向机构现场照片.jpg',
     kind: 'img',
     size: '860 KB',
     from: '王工 · 微信',
     state: '已识别',
     note: '4032 × 3024',
-    key: '密封面失效位置',
+    key: '安装空间与干涉位置',
   },
 ]
 
-/** 第 01 区：从附件中提取到的要点 */
+/** 第 01 区：附件要点 */
 export const attachmentPoints = [
-  '对接面 8×⌀13 通孔均布（来自 对接面尺寸图.pdf）',
-  '连续工作 80 ℃、转速 ≤ 3000 r/min、脂润滑（来自 工况说明.docx）',
-  '渗油发生在原法兰密封面外侧（来自 渗油部位照片.jpg）',
+  'EAU 50 pcs · 越野机器人转向控制（来自 500413 第 1、2 节）',
+  'CAHB-22：48 V / 3,500 N / 37 mm/s / 行程 50（来自 EW000970459）',
+  'CAHB-20：24 V / 4,500 N / 5.5 mm/s / 行程 300（来自 EW000970173）',
 ]
+
 
 /** 第 02 区：产品目录检索（chatbot 外壳 + 工具） */
 export const catalogChat = {
@@ -343,307 +510,747 @@ export const productBoms = {
   ],
 }
 /** 第 01 区：销售端样例输入（口语化原始记录，可编辑） */
-export const intakeSample = [
-  '【平湖 · 新能源客户 王工 · 微信】09:12',
-  '他们那台电驱总成要换法兰盘，原来的老是渗油。要 DN160 那种，配 ⌀40 的轴，',
-  '孔他们那边是 8 个孔均布的，对接面定死了不能改。先要 5 件样件，7 天能不能给？',
-  '后面批量大概 200 件，交期 25 天左右。工况是连续跑，温度 80 度上下，转速 3000 转以内，',
-  '脂润滑。要材质证明，外观不能有毛刺，尺寸按国标来。',
-].join('\n')
 
-/** 第 01 区：整理过程（写死的步骤） */
-export const intakeSteps = [
-  '识别客户与项目',
-  '提取产品与规格',
-  '补全工况与验收要求',
-  '生成书面需求单',
-]
-
-/** 第 01 区：书面需求模板（按 Project introduction / Application information / Specifications 分类） */
-export const intakeMeta = {
-  no: 'REQ-20261020-007',
-  state: '待研发对接',
-  risk: '对接面孔距需客户书面确认；8 孔均布需专用分度工装；密封槽尺寸未确认前不得开模',
-}
-
-export const intakeTemplate = [
-  {
-    no: '1',
-    title: 'Project introduction',
-    zh: '项目介绍',
-    items: [
-      { key: 'customer', label: '客户 / 来源', value: '平湖 · 新能源客户（王工）', from: 'customer' },
-      { key: 'project', label: '项目 / 用途', value: 'E-Mobility 电驱总成 · 法兰盘换型' },
-      { key: 'background', label: '背景', value: '原法兰密封面渗油，客户要求换型并保证对接面互换' },
-      { key: 'goal', label: '目标', value: '消除渗油；对接面 8 孔尺寸不变；样件先行验证' },
-    ],
-  },
-  {
-    no: '2',
-    title: 'Application information',
-    zh: '应用信息',
-    items: [
-      { key: 'scene', label: '应用场景', value: '电驱总成输出端法兰连接（连续运转）' },
-      { key: 'condition', label: '工况条件', value: '连续工作 80 ℃，转速 ≤ 3000 r/min，脂润滑', from: 'condition' },
-      { key: 'qty', label: '数量', value: '样件 5 件；首批 200 件', from: 'qty' },
-      { key: 'delivery', label: '交期要求', value: '样件 7 天；首批 25 天', from: 'delivery' },
-    ],
-  },
-  {
-    no: '3',
-    title: 'Specifications',
-    zh: '规格',
-    items: [
-      {
-        no: '3.1',
-        key: 'performance',
-        title: 'Performance',
-        zh: '性能',
-        value: '传递转矩 ≥ 320 N·m；密封等级 IP65；设计寿命 ≥ 8000 h',
-      },
-      {
-        no: '3.2',
-        key: 'functions',
-        title: 'Functions',
-        zh: '功能',
-        value: '法兰连接 + 端面密封 + 8 孔定位；可拆装维护',
-      },
-      {
-        no: '3.3',
-        key: 'interface',
-        title: 'Installation interface',
-        zh: '安装接口',
-        value: '配 ⌀40 轴，8×⌀13 通孔均布，对接面尺寸以客户图纸为准',
-        from: 'interface',
-      },
-      {
-        no: '3.4',
-        key: 'tests',
-        title: 'Tests',
-        zh: '测试',
-        value: '气密试验 0.6 MPa / 5 min；三坐标复检；动平衡 G6.3',
-        from: 'tests',
-      },
-      {
-        no: '3.5',
-        key: 'certification',
-        title: 'Certification',
-        zh: '认证',
-        value: '材质证明；尺寸按 GB/T 1804-m；IATF 16949 过程文件',
-        from: 'certification',
-      },
-    ],
-  },
-]
+/** 头版数据栏 */
 export const frontStats = [
-  { value: '12,480', unit: '张', label: '在库设计图纸' },
-  { value: '36', unit: '类', label: '样品解决方案' },
-  { value: '99.2', unit: '%', label: '图纸版本一致率' },
-  { value: '7', unit: '天', label: '样品平均交付' },
-]
+	{
+		value: "12,480",
+		unit: "张",
+		label: "在库设计图纸"
+	},
+	{
+		value: "36",
+		unit: "类",
+		label: "样品解决方案"
+	},
+	{
+		value: "99.2",
+		unit: "%",
+		label: "图纸版本一致率"
+	},
+	{
+		value: "7",
+		unit: "天",
+		label: "样品平均交付"
+	}
+];
 
-/** 页脚：按参考图信息组织，全部为按钮 */
+/** 页脚栏目 */
 export const footerColumns = [
-  {
-    title: '公司',
-    links: ['品牌故事', '市场与销售', '证书及荣誉'],
-  },
-  {
-    title: '产品和解决方案',
-    links: [
-      'E-Mobility',
-      'Powertrain & Chassis',
-      'Vehicle Lifetime Solutions',
-      'Bearings & Industrial Solutions',
-      '品牌保护',
-    ],
-  },
-  {
-    title: '企业新闻 & 媒体',
-    links: ['媒体图书馆'],
-  },
-  {
-    title: '联系我们',
-    links: ['销售办事处', '工业经销商', '加入我们', '留言板', 'Whistleblowing system'],
-  },
-]
+	{
+		title: "公司",
+		links: [
+			"品牌故事",
+			"市场与销售",
+			"证书及荣誉"
+		]
+	},
+	{
+		title: "产品和解决方案",
+		links: [
+			"E-Mobility",
+			"Powertrain & Chassis",
+			"Vehicle Lifetime Solutions",
+			"Bearings & Industrial Solutions",
+			"品牌保护"
+		]
+	},
+	{
+		title: "企业新闻 & 媒体",
+		links: ["媒体图书馆"]
+	},
+	{
+		title: "联系我们",
+		links: [
+			"销售办事处",
+			"工业经销商",
+			"加入我们",
+			"留言板",
+			"Whistleblowing system"
+		]
+	}
+];
 
-export const footerLegal = ['隐私政策', '使用条款', 'Cookie 设置', '供应商行为准则']
+export const footerLegal = [
+	"隐私政策",
+	"使用条款",
+	"Cookie 设置",
+	"供应商行为准则"
+];
 
+/* ===== 客制化目标匹配用到的零件目录（20 类 × 5 规格） ===== */
+const REV_DATES = [
+	"2022-03-11",
+	"2023-05-08",
+	"2024-06-19",
+	"2025-08-02",
+	"2026-02-14"
+];
+const REV_TAGS = ["V1", "V2", "V3", "V4", "V5"];
 
-
-/**
- * 零件对比数据：20 类零件（类型可重复，用名称区分）× 每类 5 个历史规格
- * 每类都挂在 5 个「装配位」之一上：housing / bushing / gear / flange / cover
- * 左侧组装台按装配位取当前选中的类别与规格来出图。
- */
-
-/** 历史修订时间线（V1 → V5） */
-const REV_DATES = ['2022-03-11', '2023-05-08', '2024-06-19', '2025-08-02', '2026-02-14']
-const REV_TAGS = ['V1', 'V2', 'V3', 'V4', 'V5']
-
-/** 尺寸系列：同类不同结构复用，保证图面比例协调 */
 const SERIES = {
-  housing: {
-    dia: [80, 100, 120, 150, 180],
-    len: [130, 140, 152, 170, 190],
-    holes: [2, 2, 4, 4, 4],
-    holeDia: [12, 12, 14, 16, 18],
-    bore: [40, 50, 60, 75, 90],
-    weight: [3.6, 5.2, 7.4, 11.8, 17.6],
-  },
-  bushing: {
-    dia: [20, 25, 30, 40, 50],
-    len: [30, 40, 45, 60, 70],
-    holes: [0, 0, 0, 0, 0],
-    holeDia: [0, 0, 0, 0, 0],
-    bore: [14, 18, 22, 30, 38],
-    weight: [0.08, 0.14, 0.22, 0.48, 0.86],
-  },
-  gear: {
-    dia: [30, 48, 70, 96, 144],
-    len: [18, 22, 26, 32, 40],
-    holes: [0, 0, 0, 0, 0],
-    holeDia: [0, 0, 0, 0, 0],
-    bore: [12, 16, 20, 25, 30],
-    weight: [0.12, 0.34, 0.82, 1.9, 5.6],
-  },
-  flange: {
-    dia: [80, 100, 120, 160, 200],
-    len: [16, 20, 24, 32, 40],
-    holes: [4, 4, 6, 8, 8],
-    holeDia: [9, 11, 11, 13, 18],
-    bore: [20, 25, 30, 40, 50],
-    weight: [0.9, 1.4, 2.2, 4.6, 7.8],
-  },
-  cover: {
-    dia: [72, 90, 110, 140, 170],
-    len: [12, 16, 20, 24, 28],
-    holes: [4, 4, 6, 6, 8],
-    holeDia: [6, 8, 8, 10, 12],
-    bore: [20, 25, 30, 40, 50],
-    weight: [0.4, 0.7, 1.2, 2.1, 3.4],
-  },
-}
+	housing: {
+		dia: [
+			80,
+			100,
+			120,
+			150,
+			180
+		],
+		len: [
+			130,
+			140,
+			152,
+			170,
+			190
+		],
+		holes: [
+			2,
+			2,
+			4,
+			4,
+			4
+		],
+		holeDia: [
+			12,
+			12,
+			14,
+			16,
+			18
+		],
+		bore: [
+			40,
+			50,
+			60,
+			75,
+			90
+		],
+		weight: [
+			3.6,
+			5.2,
+			7.4,
+			11.8,
+			17.6
+		]
+	},
+	bushing: {
+		dia: [
+			20,
+			25,
+			30,
+			40,
+			50
+		],
+		len: [
+			30,
+			40,
+			45,
+			60,
+			70
+		],
+		holes: [
+			0,
+			0,
+			0,
+			0,
+			0
+		],
+		holeDia: [
+			0,
+			0,
+			0,
+			0,
+			0
+		],
+		bore: [
+			14,
+			18,
+			22,
+			30,
+			38
+		],
+		weight: [
+			.08,
+			.14,
+			.22,
+			.48,
+			.86
+		]
+	},
+	gear: {
+		dia: [
+			30,
+			48,
+			70,
+			96,
+			144
+		],
+		len: [
+			18,
+			22,
+			26,
+			32,
+			40
+		],
+		holes: [
+			0,
+			0,
+			0,
+			0,
+			0
+		],
+		holeDia: [
+			0,
+			0,
+			0,
+			0,
+			0
+		],
+		bore: [
+			12,
+			16,
+			20,
+			25,
+			30
+		],
+		weight: [
+			.12,
+			.34,
+			.82,
+			1.9,
+			5.6
+		]
+	},
+	flange: {
+		dia: [
+			80,
+			100,
+			120,
+			160,
+			200
+		],
+		len: [
+			16,
+			20,
+			24,
+			32,
+			40
+		],
+		holes: [
+			4,
+			4,
+			6,
+			8,
+			8
+		],
+		holeDia: [
+			9,
+			11,
+			11,
+			13,
+			18
+		],
+		bore: [
+			20,
+			25,
+			30,
+			40,
+			50
+		],
+		weight: [
+			.9,
+			1.4,
+			2.2,
+			4.6,
+			7.8
+		]
+	},
+	cover: {
+		dia: [
+			72,
+			90,
+			110,
+			140,
+			170
+		],
+		len: [
+			12,
+			16,
+			20,
+			24,
+			28
+		],
+		holes: [
+			4,
+			4,
+			6,
+			6,
+			8
+		],
+		holeDia: [
+			6,
+			8,
+			8,
+			10,
+			12
+		],
+		bore: [
+			20,
+			25,
+			30,
+			40,
+			50
+		],
+		weight: [
+			.4,
+			.7,
+			1.2,
+			2.1,
+			3.4
+		]
+	}
+};
 
-/** 装配位（左侧组装台的 5 个零件 + 固定基准轴） */
 export const partSlots = [
-  { key: 'housing', name: '轴承座', icon: 'building' },
-  { key: 'bushing', name: '轴套', icon: 'minus' },
-  { key: 'gear', name: '齿轮', icon: 'gear' },
-  { key: 'flange', name: '法兰盘', icon: 'grid' },
-  { key: 'cover', name: '端盖', icon: 'layers' },
-]
+	{
+		key: "housing",
+		name: "轴承座",
+		icon: "building"
+	},
+	{
+		key: "bushing",
+		name: "轴套",
+		icon: "minus"
+	},
+	{
+		key: "gear",
+		name: "齿轮",
+		icon: "gear"
+	},
+	{
+		key: "flange",
+		name: "法兰盘",
+		icon: "grid"
+	},
+	{
+		key: "cover",
+		name: "端盖",
+		icon: "layers"
+	}
+];
 
-/** 20 类零件定义（labels 为 5 个历史规格名称，extra 为可选补充说明） */
 const CAT_DEFS = [
-  /* —— 轴承座 —— */
-  { key: 'housing-vert', name: '立式轴承座', slot: 'housing', icon: 'building', code: 'NY-BS', material: '铸铁 HT200', feature: '单螺栓固定', labels: ['H1-080', 'H1-100', 'H1-120', 'H1-150', 'H1-180'], extra: ['配 6208', '配 6210', '配 6212', '配 6215', '配 6218'] },
-  { key: 'housing-split', name: '剖分式轴承座', slot: 'housing', icon: 'layers', code: 'NY-BP', material: '铸铁 HT250', feature: '剖分面精铣', labels: ['H2-100', 'H2-120', 'H2-150', 'H2-180', 'H2-200'], extra: ['配 22210', '配 22212', '配 22215', '配 22218', '配 22220'] },
-  { key: 'housing-flange', name: '法兰式轴承座', slot: 'housing', icon: 'grid', code: 'NY-BF', material: '铸钢 ZG270', feature: '四孔法兰安装', labels: ['H3-060', 'H3-080', 'H3-100', 'H3-120', 'H3-140'], extra: ['配 6206', '配 6208', '配 6210', '配 6212', '配 6214'] },
-  { key: 'housing-pillow', name: '带座外球面轴承', slot: 'housing', icon: 'minus', code: 'NY-UC', material: '铸铁 HT200', feature: '外球面自调心', labels: ['UCP-205', 'UCP-206', 'UCP-207', 'UCP-208', 'UCP-210'], extra: ['轴径 ⌀25', '轴径 ⌀30', '轴径 ⌀35', '轴径 ⌀40', '轴径 ⌀50'] },
-  /* —— 轴套 —— */
-  { key: 'bush-bronze', name: '铜合金轴套', slot: 'bushing', icon: 'minus', code: 'NY-BU', material: '锡青铜 ZQSn6-6-3', feature: '整体铸造', labels: ['⌀20×30', '⌀25×40', '⌀30×45', '⌀40×60', '⌀50×70'] },
-  { key: 'bush-bimetal', name: '双金属轴套', slot: 'bushing', icon: 'layers', code: 'NY-BB', material: '钢背 + 铜合金', feature: '复合烧结', labels: ['⌀20×25', '⌀25×30', '⌀30×40', '⌀40×50', '⌀50×60'] },
-  { key: 'bush-oilless', name: '含油轴套', slot: 'bushing', icon: 'grid', code: 'NY-BO', material: '粉末冶金', feature: '浸油率 ≥ 18%', labels: ['⌀20×20', '⌀25×25', '⌀30×30', '⌀40×40', '⌀50×50'] },
-  { key: 'bush-nylon', name: '尼龙轴套', slot: 'bushing', icon: 'minus', code: 'NY-BN', material: 'MC 尼龙', feature: '自润滑 · 耐腐蚀', labels: ['⌀20×35', '⌀25×45', '⌀30×50', '⌀40×65', '⌀50×75'] },
-  /* —— 齿轮 —— */
-  { key: 'gear-spur', name: '直齿圆柱齿轮', slot: 'gear', icon: 'gear', code: 'NY-GS', material: '20CrMnTi', feature: '磨齿 6 级', labels: ['m1.5 z20', 'm2 z24', 'm2.5 z28', 'm3 z32', 'm4 z36'] },
-  { key: 'gear-helical', name: '斜齿圆柱齿轮', slot: 'gear', icon: 'gear', code: 'NY-GH', material: '20CrMnTi', feature: '磨齿 6 级 · 螺旋角 12°', labels: ['m1.5 z22', 'm2 z26', 'm2.5 z30', 'm3 z34', 'm4 z38'] },
-  { key: 'gear-internal', name: '内齿圈', slot: 'gear', icon: 'gear', code: 'NY-GI', material: '42CrMo', feature: '调质 + 氮化', labels: ['m2 z40', 'm2.5 z44', 'm3 z48', 'm3.5 z52', 'm4 z56'] },
-  { key: 'gear-sprocket', name: '链轮', slot: 'gear', icon: 'gear', code: 'NY-SP', material: '45 钢', feature: '齿面高频淬火', labels: ['08B z17', '08B z21', '10A z19', '12A z21', '16A z19'] },
-  /* —— 法兰盘 —— */
-  { key: 'flange-flat', name: '平焊法兰', slot: 'flange', icon: 'grid', code: 'NY-FF', material: 'Q235B', feature: '角焊缝连接', variant: 'A 型', labels: ['DN80', 'DN100', 'DN120', 'DN160', 'DN200'] },
-  { key: 'flange-weld', name: '对焊法兰', slot: 'flange', icon: 'grid', code: 'NY-FW', material: '16Mn', feature: '对接全焊透', variant: 'B 型', labels: ['DN80', 'DN100', 'DN120', 'DN160', 'DN200'] },
-  { key: 'flange-neck', name: '带颈法兰', slot: 'flange', icon: 'grid', code: 'NY-FN', material: '20 钢', feature: '带颈加强', variant: 'C 型', labels: ['DN80', 'DN100', 'DN120', 'DN160', 'DN200'] },
-  { key: 'flange-thread', name: '螺纹法兰', slot: 'flange', icon: 'grid', code: 'NY-FT', material: '35CrMo', feature: '螺纹密封', variant: 'D 型', labels: ['DN80', 'DN100', 'DN120', 'DN160', 'DN200'] },
-  /* —— 端盖 —— */
-  { key: 'cover-flat', name: '平端盖', slot: 'cover', icon: 'layers', code: 'NY-CF', material: 'HT150', feature: '防尘平盖', variant: '平盖', labels: ['⌀72', '⌀90', '⌀110', '⌀140', '⌀170'] },
-  { key: 'cover-boss', name: '凸缘端盖', slot: 'cover', icon: 'layers', code: 'NY-CB', material: 'HT200', feature: '带凸台定位', variant: '凸盖', labels: ['⌀72', '⌀90', '⌀110', '⌀140', '⌀170'] },
-  { key: 'cover-seal', name: '密封端盖', slot: 'cover', icon: 'layers', code: 'NY-CS', material: 'HT200', feature: '含骨架油封位', variant: '密封盖', labels: ['⌀72', '⌀90', '⌀110', '⌀140', '⌀170'] },
-  { key: 'cover-split', name: '分体端盖', slot: 'cover', icon: 'layers', code: 'NY-CP', material: '铝合金 6061', feature: '两半对合', variant: '分体盖', labels: ['⌀72', '⌀90', '⌀110', '⌀140', '⌀170'] },
-]
+	{
+		key: "housing-vert",
+		name: "立式轴承座",
+		slot: "housing",
+		icon: "building",
+		code: "NY-BS",
+		material: "铸铁 HT200",
+		feature: "单螺栓固定",
+		labels: [
+			"H1-080",
+			"H1-100",
+			"H1-120",
+			"H1-150",
+			"H1-180"
+		],
+		extra: [
+			"配 6208",
+			"配 6210",
+			"配 6212",
+			"配 6215",
+			"配 6218"
+		]
+	},
+	{
+		key: "housing-split",
+		name: "剖分式轴承座",
+		slot: "housing",
+		icon: "layers",
+		code: "NY-BP",
+		material: "铸铁 HT250",
+		feature: "剖分面精铣",
+		labels: [
+			"H2-100",
+			"H2-120",
+			"H2-150",
+			"H2-180",
+			"H2-200"
+		],
+		extra: [
+			"配 22210",
+			"配 22212",
+			"配 22215",
+			"配 22218",
+			"配 22220"
+		]
+	},
+	{
+		key: "housing-flange",
+		name: "法兰式轴承座",
+		slot: "housing",
+		icon: "grid",
+		code: "NY-BF",
+		material: "铸钢 ZG270",
+		feature: "四孔法兰安装",
+		labels: [
+			"H3-060",
+			"H3-080",
+			"H3-100",
+			"H3-120",
+			"H3-140"
+		],
+		extra: [
+			"配 6206",
+			"配 6208",
+			"配 6210",
+			"配 6212",
+			"配 6214"
+		]
+	},
+	{
+		key: "housing-pillow",
+		name: "带座外球面轴承",
+		slot: "housing",
+		icon: "minus",
+		code: "NY-UC",
+		material: "铸铁 HT200",
+		feature: "外球面自调心",
+		labels: [
+			"UCP-205",
+			"UCP-206",
+			"UCP-207",
+			"UCP-208",
+			"UCP-210"
+		],
+		extra: [
+			"轴径 ⌀25",
+			"轴径 ⌀30",
+			"轴径 ⌀35",
+			"轴径 ⌀40",
+			"轴径 ⌀50"
+		]
+	},
+	{
+		key: "bush-bronze",
+		name: "铜合金轴套",
+		slot: "bushing",
+		icon: "minus",
+		code: "NY-BU",
+		material: "锡青铜 ZQSn6-6-3",
+		feature: "整体铸造",
+		labels: [
+			"⌀20×30",
+			"⌀25×40",
+			"⌀30×45",
+			"⌀40×60",
+			"⌀50×70"
+		]
+	},
+	{
+		key: "bush-bimetal",
+		name: "双金属轴套",
+		slot: "bushing",
+		icon: "layers",
+		code: "NY-BB",
+		material: "钢背 + 铜合金",
+		feature: "复合烧结",
+		labels: [
+			"⌀20×25",
+			"⌀25×30",
+			"⌀30×40",
+			"⌀40×50",
+			"⌀50×60"
+		]
+	},
+	{
+		key: "bush-oilless",
+		name: "含油轴套",
+		slot: "bushing",
+		icon: "grid",
+		code: "NY-BO",
+		material: "粉末冶金",
+		feature: "浸油率 ≥ 18%",
+		labels: [
+			"⌀20×20",
+			"⌀25×25",
+			"⌀30×30",
+			"⌀40×40",
+			"⌀50×50"
+		]
+	},
+	{
+		key: "bush-nylon",
+		name: "尼龙轴套",
+		slot: "bushing",
+		icon: "minus",
+		code: "NY-BN",
+		material: "MC 尼龙",
+		feature: "自润滑 · 耐腐蚀",
+		labels: [
+			"⌀20×35",
+			"⌀25×45",
+			"⌀30×50",
+			"⌀40×65",
+			"⌀50×75"
+		]
+	},
+	{
+		key: "gear-spur",
+		name: "直齿圆柱齿轮",
+		slot: "gear",
+		icon: "gear",
+		code: "NY-GS",
+		material: "20CrMnTi",
+		feature: "磨齿 6 级",
+		labels: [
+			"m1.5 z20",
+			"m2 z24",
+			"m2.5 z28",
+			"m3 z32",
+			"m4 z36"
+		]
+	},
+	{
+		key: "gear-helical",
+		name: "斜齿圆柱齿轮",
+		slot: "gear",
+		icon: "gear",
+		code: "NY-GH",
+		material: "20CrMnTi",
+		feature: "磨齿 6 级 · 螺旋角 12°",
+		labels: [
+			"m1.5 z22",
+			"m2 z26",
+			"m2.5 z30",
+			"m3 z34",
+			"m4 z38"
+		]
+	},
+	{
+		key: "gear-internal",
+		name: "内齿圈",
+		slot: "gear",
+		icon: "gear",
+		code: "NY-GI",
+		material: "42CrMo",
+		feature: "调质 + 氮化",
+		labels: [
+			"m2 z40",
+			"m2.5 z44",
+			"m3 z48",
+			"m3.5 z52",
+			"m4 z56"
+		]
+	},
+	{
+		key: "gear-sprocket",
+		name: "链轮",
+		slot: "gear",
+		icon: "gear",
+		code: "NY-SP",
+		material: "45 钢",
+		feature: "齿面高频淬火",
+		labels: [
+			"08B z17",
+			"08B z21",
+			"10A z19",
+			"12A z21",
+			"16A z19"
+		]
+	},
+	{
+		key: "flange-flat",
+		name: "平焊法兰",
+		slot: "flange",
+		icon: "grid",
+		code: "NY-FF",
+		material: "Q235B",
+		feature: "角焊缝连接",
+		variant: "A 型",
+		labels: [
+			"DN80",
+			"DN100",
+			"DN120",
+			"DN160",
+			"DN200"
+		]
+	},
+	{
+		key: "flange-weld",
+		name: "对焊法兰",
+		slot: "flange",
+		icon: "grid",
+		code: "NY-FW",
+		material: "16Mn",
+		feature: "对接全焊透",
+		variant: "B 型",
+		labels: [
+			"DN80",
+			"DN100",
+			"DN120",
+			"DN160",
+			"DN200"
+		]
+	},
+	{
+		key: "flange-neck",
+		name: "带颈法兰",
+		slot: "flange",
+		icon: "grid",
+		code: "NY-FN",
+		material: "20 钢",
+		feature: "带颈加强",
+		variant: "C 型",
+		labels: [
+			"DN80",
+			"DN100",
+			"DN120",
+			"DN160",
+			"DN200"
+		]
+	},
+	{
+		key: "flange-thread",
+		name: "螺纹法兰",
+		slot: "flange",
+		icon: "grid",
+		code: "NY-FT",
+		material: "35CrMo",
+		feature: "螺纹密封",
+		variant: "D 型",
+		labels: [
+			"DN80",
+			"DN100",
+			"DN120",
+			"DN160",
+			"DN200"
+		]
+	},
+	{
+		key: "cover-flat",
+		name: "平端盖",
+		slot: "cover",
+		icon: "layers",
+		code: "NY-CF",
+		material: "HT150",
+		feature: "防尘平盖",
+		variant: "平盖",
+		labels: [
+			"⌀72",
+			"⌀90",
+			"⌀110",
+			"⌀140",
+			"⌀170"
+		]
+	},
+	{
+		key: "cover-boss",
+		name: "凸缘端盖",
+		slot: "cover",
+		icon: "layers",
+		code: "NY-CB",
+		material: "HT200",
+		feature: "带凸台定位",
+		variant: "凸盖",
+		labels: [
+			"⌀72",
+			"⌀90",
+			"⌀110",
+			"⌀140",
+			"⌀170"
+		]
+	},
+	{
+		key: "cover-seal",
+		name: "密封端盖",
+		slot: "cover",
+		icon: "layers",
+		code: "NY-CS",
+		material: "HT200",
+		feature: "含骨架油封位",
+		variant: "密封盖",
+		labels: [
+			"⌀72",
+			"⌀90",
+			"⌀110",
+			"⌀140",
+			"⌀170"
+		]
+	},
+	{
+		key: "cover-split",
+		name: "分体端盖",
+		slot: "cover",
+		icon: "layers",
+		code: "NY-CP",
+		material: "铝合金 6061",
+		feature: "两半对合",
+		variant: "分体盖",
+		labels: [
+			"⌀72",
+			"⌀90",
+			"⌀110",
+			"⌀140",
+			"⌀170"
+		]
+	}
+];
 
-const pad3 = (n) => String(n).padStart(3, '0')
+const pad3 = (n) => String(n).padStart(3, "0");
 
-/** 由类别定义生成 5 条历史规格 */
 function buildEntries(def) {
-  const s = SERIES[def.slot]
-  return def.labels.map((label, i) => {
-    const dia = s.dia[i]
-    const len = s.len[i]
-    const holes = s.holes[i]
-    let spec = ''
-    let note = ''
-    if (def.slot === 'housing') {
-      spec = `中心高 ${dia} · ${def.extra?.[i] ?? ''}`.trim()
-      note = `${def.material}，${def.feature}`
-    } else if (def.slot === 'bushing') {
-      spec = `内 ⌀${s.bore[i]} · L${len}`
-      note = `${def.material}，${def.feature}`
-    } else if (def.slot === 'gear') {
-      spec = `⌀${dia} · 齿宽 ${len}`
-      note = `${def.material}，${def.feature}`
-    } else if (def.slot === 'flange') {
-      spec = `${def.variant} · 厚 ${len}`
-      note = `配 ⌀${s.bore[i]} 轴，${holes}×⌀${s.holeDia[i]} 通孔`
-    } else {
-      spec = `${def.variant} · 厚 ${len}`
-      note = `${def.material}，${def.feature}`
-    }
-    return {
-      code: `${def.code}-${pad3(dia)}`,
-      label,
-      spec,
-      dia,
-      len,
-      holes,
-      holeDia: s.holeDia[i],
-      bore: s.bore[i],
-      weight: s.weight[i],
-      rev: REV_TAGS[i],
-      date: REV_DATES[i],
-      note,
-    }
-  })
+	const s = SERIES[def.slot];
+	return def.labels.map((label, i) => {
+		const dia = s.dia[i];
+		const len = s.len[i];
+		const holes = s.holes[i];
+		let spec = "";
+		let note = "";
+		if (def.slot === "housing") {
+			spec = `中心高 ${dia} · ${def.extra?.[i] ?? ""}`.trim();
+			note = `${def.material}，${def.feature}`;
+		} else if (def.slot === "bushing") {
+			spec = `内 ⌀${s.bore[i]} · L${len}`;
+			note = `${def.material}，${def.feature}`;
+		} else if (def.slot === "gear") {
+			spec = `⌀${dia} · 齿宽 ${len}`;
+			note = `${def.material}，${def.feature}`;
+		} else if (def.slot === "flange") {
+			spec = `${def.variant} · 厚 ${len}`;
+			note = `配 ⌀${s.bore[i]} 轴，${holes}×⌀${s.holeDia[i]} 通孔`;
+		} else {
+			spec = `${def.variant} · 厚 ${len}`;
+			note = `${def.material}，${def.feature}`;
+		}
+		return {
+			code: `${def.code}-${pad3(dia)}`,
+			label,
+			spec,
+			dia,
+			len,
+			holes,
+			holeDia: s.holeDia[i],
+			bore: s.bore[i],
+			weight: s.weight[i],
+			rev: REV_TAGS[i],
+			date: REV_DATES[i],
+			note
+		};
+	});
 }
 
 export const partCategories = CAT_DEFS.map((def) => ({
-  ...def,
-  field: def.slot === 'housing' ? '中心高' : def.slot === 'gear' ? '分度圆' : '外径',
-  entries: buildEntries(def),
-}))
+	...def,
+	field: def.slot === "housing" ? "中心高" : def.slot === "gear" ? "分度圆" : "外径",
+	entries: buildEntries(def)
+}));
 
-/** 按装配位取默认类别（每类第一个） */
 export const defaultCatBySlot = partSlots.reduce((acc, s) => {
-  const first = partCategories.find((c) => c.slot === s.key)
-  if (first) acc[s.key] = first.key
-  return acc
-}, {})
-/** 装配顺序（左侧动画按此顺序逐件装入） */
+	const first = partCategories.find((c) => c.slot === s.key);
+	if (first) acc[s.key] = first.key;
+	return acc;
+}, {});
+
 export const assemblyOrder = partSlots.map((s) => s.key)
-
-/** 零件对比区文案 */
-export const compareIntro = {
-  kicker: '研发端 · 第 03 区 · 需求分析',
-  title: '需求分析 · 历史可能性展示 · 组装交互',
-  note: '在下方对话里描述需求（演示版本写死：无论输入什么需求，都会调用同一个工具），助手会把「历史可能性展示 · 组装交互」作为工具在对话中展开。',
-}
-
-/** 需求分析助手：开场白与写死的工具回复 */
-export const analystChat = {
-  name: '需求分析助手',
-  role: 'Requirement Analyst',
-  greeting:
-    '你好，我是需求分析助手。描述你的需求（零件类型 / 尺寸 / 工况 / 交期），我会检索历史图纸库，并把可用的方案以工具形式展开。',
-  toolName: '历史可能性展示 · 组装交互',
-  toolId: 'history_part_search',
-  seedQuestion: '需要一套 ⌀160 的传动端盖组件，配 ⌀40 轴，8 孔均布，希望有历史版本可以对比',
-  reply: (q) =>
-    `已按「${q}」检索历史图纸库：命中 20 类零件、100 个历史规格，工具「历史可能性展示 · 组装交互」已在下方展开——左侧可拖动零件完成组装、滚轮缩放，右侧可切换类别 / 规格 / 对比 / 上传。`,
-  suggestions: [
-    '需要 ⌀160 法兰盘，配 ⌀40 轴，8 孔均布',
-    '找 H1-150 轴承座的历史版本，对比重量变化',
-    '轴套想从铜合金换成双金属，有历史规格吗',
-  ],
-}
