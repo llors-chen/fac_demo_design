@@ -883,6 +883,45 @@ onBeforeUnmount(() => window.clearInterval(timer))
   font-size: 0.48rem;
 }
 
+/* 手机：步骤时间线收成两列，报表卡片内的字段名收窄 */
+@media (max-width: 480px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .stage {
+    padding: 10px 10px 12px;
+  }
+  .stage__nav {
+    width: 100%;
+  }
+  .stage__nav .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .form__row,
+  .rtable td,
+  .ctable td {
+    font-size: 0.72rem;
+  }
+  .form__row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .form__row dt {
+    padding-top: 0;
+  }
+  .askbox {
+    flex-direction: column;
+  }
+  .parties {
+    gap: 6px;
+  }
+  .party {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
 @media (max-width: 1080px) {
   .flow__body {
     grid-template-columns: 1fr;

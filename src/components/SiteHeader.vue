@@ -1,36 +1,34 @@
 <script setup>
 /**
- * 报头 + 顶部导航条
- * 导航项仅作按钮（不跳转），点击只切换当前高亮，用于展示视觉状态。
+ * 报头（工具版）
+ *
+ * 官网风格的吸顶导航条（工厂信息 / 品牌介绍 / 样品解决方案 / 职业 / 公司）已注释隐藏，
+ * 只保留：顶部细条（日期 / 演示标识）+ 报头（流程演示 + 检索）。
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import AppIcon from './AppIcon.vue'
-import { navItems, navSecondary } from '../data/site.js'
 
-const activeKey = ref(navItems[0].key)
-const compact = ref(false)
-const menuOpen = ref(false)
+/* 主题切换：演示（印刷纸感）/ 工具（企业内部工具） */
+const theme = ref(document.documentElement.getAttribute('data-theme') === 'tool' ? 'tool' : 'paper')
+
+function setTheme(next) {
+  theme.value = next
+  if (next === 'tool') document.documentElement.setAttribute('data-theme', 'tool')
+  else document.documentElement.removeAttribute('data-theme')
+  try {
+    localStorage.setItem('dsh-theme', next)
+  } catch (e) {
+    /* 忽略隐私模式下的写入失败 */
+  }
+}
 
 const today = computed(() => {
   const now = new Date()
   const week = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()]
-  return `${now.getFullYear()} 年 ${now.getMonth() + 1} 月 ${now.getDate()} 日 · 星期${week}`
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${mm}-${dd} · 星期${week}`
 })
-
-function onScroll() {
-  compact.value = window.scrollY > 140
-}
-
-function pick(item) {
-  activeKey.value = item.key
-  menuOpen.value = false
-}
-
-onMounted(() => {
-  onScroll()
-  window.addEventListener('scroll', onScroll, { passive: true })
-})
-onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 </script>
 
 <template>
@@ -40,17 +38,29 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <div class="wrap strip__in">
         <span class="mono strip__date">{{ today }}</span>
         <span class="strip__dot" aria-hidden="true"></span>
-        <span class="mono strip__issue">精工图谱 · 平湖工厂 ｜ 第 001 期 · 设计成果特辑</span>
+        <span class="mono strip__issue">销售—研发协同流程 · 需求到报价 Demo</span>
         <div class="strip__right">
-          <button class="linkbtn strip__link" type="button">供应商门户</button>
-          <button class="linkbtn strip__link" type="button">
-            <AppIcon name="globe" :size="15" />
-            中文 / EN
-          </button>
-          <button class="btn btn--sm" type="button">
-            <AppIcon name="lock" :size="14" />
-            登录图纸库
-          </button>
+          <span class="mono strip__tag">内部演示环境</span>
+
+          <!-- 主题切换 -->
+          <div class="theme" role="group" aria-label="界面主题">
+            <button
+              class="theme__btn"
+              :class="{ 'is-on': theme === 'paper' }"
+              type="button"
+              @click="setTheme('paper')"
+            >
+              演示
+            </button>
+            <button
+              class="theme__btn"
+              :class="{ 'is-on': theme === 'tool' }"
+              type="button"
+              @click="setTheme('tool')"
+            >
+              工具
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -60,27 +70,22 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <div class="wrap brandbar__in">
         <div class="brand">
           <span class="brand__mark" aria-hidden="true">
-            <AppIcon name="gear" :size="34" :stroke="1.4" />
+            <AppIcon name="gear" :size="30" :stroke="1.4" />
           </span>
           <div class="brand__text">
-            <h1 class="brand__name">精工图谱</h1>
-            <p class="brand__tag">平湖工厂 · 工业制造与设计成果在线图纸库</p>
+            <h1 class="brand__name">流程演示</h1>
+            <p class="brand__tag">平湖工厂 · 需求 → 报表 → 图纸/BOM → 车间 → 报价</p>
           </div>
         </div>
 
         <div class="brand__side">
-          <dl class="fact">
-            <div><dt class="mono">创刊</dt><dd>1998</dd></div>
-            <div><dt class="mono">厂区</dt><dd>浙江 · 平湖</dd></div>
-            <div><dt class="mono">在库图纸</dt><dd>12,480</dd></div>
-          </dl>
           <form class="searchbar" @submit.prevent>
             <AppIcon name="search" :size="16" />
             <input
               class="searchbar__input"
               type="search"
-              placeholder="按图号 / 零件名 / 材料检索图纸"
-              aria-label="检索图纸"
+              placeholder="按 iCRM / 图号 / 客户检索"
+              aria-label="检索"
             />
             <button class="btn btn--sm" type="submit">检索</button>
           </form>
@@ -88,75 +93,10 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       </div>
     </div>
 
-    <!-- 导航条 -->
-    <nav class="nav" :class="{ 'is-compact': compact }" aria-label="主导航">
-      <div class="wrap nav__in">
-        <span class="nav__mini" :class="{ 'is-on': compact }" aria-hidden="true">
-          <AppIcon name="gear" :size="18" />
-          精工图谱
-        </span>
-
-        <ul class="nav__list">
-          <li v-for="item in navItems" :key="item.key">
-            <button
-              class="linkbtn nav__item"
-              :class="{ 'linkbtn--active': activeKey === item.key }"
-              type="button"
-              :aria-pressed="activeKey === item.key"
-              @click="pick(item)"
-            >
-              <AppIcon :name="item.icon" :size="17" />
-              {{ item.label }}
-            </button>
-          </li>
-        </ul>
-
-        <div class="nav__extra">
-          <button
-            v-for="item in navSecondary"
-            :key="item.key"
-            class="linkbtn nav__item nav__item--sub"
-            type="button"
-            @click="pick(item)"
-          >
-            <AppIcon :name="item.icon" :size="16" />
-            {{ item.label }}
-          </button>
-          <button class="btn btn--sm btn--solid" type="button">
-            <AppIcon name="file" :size="14" />
-            索取样品
-          </button>
-        </div>
-
-        <button
-          class="nav__toggle"
-          type="button"
-          :aria-expanded="menuOpen"
-          aria-label="展开导航"
-          @click="menuOpen = !menuOpen"
-        >
-          <AppIcon :name="menuOpen ? 'close' : 'menu'" :size="20" />
-        </button>
-      </div>
-
-      <transition name="drawer">
-        <div v-show="menuOpen" class="drawer">
-          <div class="wrap drawer__in">
-            <button
-              v-for="item in [...navItems, ...navSecondary]"
-              :key="item.key"
-              class="linkbtn drawer__item"
-              type="button"
-              @click="pick(item)"
-            >
-              <AppIcon :name="item.icon" :size="18" />
-              {{ item.label }}
-              <AppIcon name="chevronRight" :size="16" class="drawer__chev" />
-            </button>
-          </div>
-        </div>
-      </transition>
-    </nav>
+    <!--
+      导航条（已按需求注释隐藏，需要时取消注释即可）
+      <nav class="nav">… 工厂信息 / 品牌介绍 / 样品解决方案 / 职业 / 公司 …</nav>
+    -->
   </header>
 </template>
 
@@ -174,13 +114,13 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 38px;
+  min-height: 36px;
   flex-wrap: wrap;
 }
 .strip__date,
 .strip__issue {
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
   color: var(--ink-3);
 }
 .strip__dot {
@@ -193,10 +133,36 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
 }
-.strip__link {
-  font-size: 0.82rem;
+.theme {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-pill);
+  background: var(--paper);
+}
+.theme__btn {
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.66rem;
+  font-family: var(--serif);
+  color: var(--ink-3);
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.theme__btn:hover {
+  color: var(--accent-ink);
+}
+.theme__btn.is-on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.strip__tag {
+  font-size: 0.58rem;
+  padding: 2px 8px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-pill);
+  color: var(--ink-3);
 }
 
 /* ---------- 报头 ---------- */
@@ -206,23 +172,23 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 }
 .brandbar__in {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 32px;
-  padding-top: clamp(18px, 2.6vw, 34px);
-  padding-bottom: clamp(14px, 2vw, 24px);
+  gap: 28px;
+  padding-top: clamp(14px, 1.8vw, 22px);
+  padding-bottom: clamp(12px, 1.6vw, 18px);
   flex-wrap: wrap;
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 .brand__mark {
   display: grid;
   place-items: center;
-  width: 62px;
-  height: 62px;
+  width: 52px;
+  height: 52px;
   border: 1px solid var(--rule-2);
   border-radius: 0 var(--r-md) 0 var(--r-md);
   color: var(--ink);
@@ -236,49 +202,30 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   transform: rotate(45deg);
 }
 .brand__name {
-  font-size: clamp(1.9rem, 3.6vw, 3rem);
-  letter-spacing: 0.22em;
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  letter-spacing: 0.2em;
   line-height: 1.05;
 }
 .brand__tag {
-  margin-top: 6px;
-  font-size: 0.86rem;
-  letter-spacing: 0.16em;
+  margin-top: 5px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
   color: var(--ink-3);
 }
 .brand__side {
   display: flex;
-  align-items: flex-end;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-.fact {
-  display: flex;
-  gap: 22px;
-  margin: 0;
-}
-.fact div {
-  border-left: 1px solid var(--rule);
-  padding-left: 12px;
-}
-.fact dt {
-  font-size: 0.6rem;
-}
-.fact dd {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  align-items: center;
+  gap: 16px;
 }
 .searchbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 6px 6px 14px;
+  padding: 5px 5px 5px 12px;
   border: 1px solid var(--rule);
   border-radius: var(--r-md);
   background: var(--surface);
-  min-width: min(360px, 74vw);
+  min-width: min(340px, 70vw);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .searchbar:focus-within {
@@ -291,7 +238,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   border: none;
   background: none;
   font-family: var(--serif);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   color: var(--ink);
   outline: none;
 }
@@ -299,131 +246,45 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   color: var(--ink-4);
 }
 
-/* ---------- 导航条 ---------- */
-.nav {
-  position: sticky;
-  top: 0;
-  z-index: 60;
-  background: var(--paper);
-  border-bottom: 1px solid var(--rule-2);
-  transition: box-shadow 0.3s ease, background 0.3s ease;
-}
-.nav::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: var(--rule);
-}
-.nav.is-compact {
-  box-shadow: 0 14px 30px -26px rgba(22, 19, 14, 0.75);
-  background: color-mix(in srgb, var(--paper) 88%, #fff);
-  backdrop-filter: blur(6px);
-}
-.nav__in {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-height: var(--nav-h);
-}
-.nav__mini {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  opacity: 0;
-  transition: max-width 0.45s cubic-bezier(0.2, 0.7, 0.3, 1), opacity 0.3s ease;
-}
-.nav__mini.is-on {
-  max-width: 220px;
-  opacity: 1;
-  padding-right: 16px;
-  border-right: 1px solid var(--rule);
-}
-.nav__list {
-  display: flex;
-  align-items: center;
-  gap: clamp(10px, 1.8vw, 26px);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.nav__item {
-  font-size: 1rem;
-  letter-spacing: 0.04em;
-}
-.nav__extra {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-.nav__item--sub {
-  font-size: 0.86rem;
-  color: var(--ink-3);
-}
-.nav__toggle {
-  display: none;
-  margin-left: auto;
-  padding: 8px;
-  border: 1px solid var(--rule-2);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-}
-
-/* 移动端抽屉 */
-.drawer {
-  border-top: 1px solid var(--rule);
-  background: var(--paper-2);
-}
-.drawer__in {
-  display: grid;
-  gap: 2px;
-  padding-top: 8px;
-  padding-bottom: 14px;
-}
-.drawer__item {
-  justify-content: flex-start;
-  padding: 11px 6px;
-  border-bottom: 1px dashed var(--rule);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-  font-size: 1rem;
-}
-.drawer__chev {
-  margin-left: auto;
-  color: var(--ink-4);
-}
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: opacity 0.22s ease, transform 0.28s ease;
-}
-.drawer-enter-from,
-.drawer-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-
-@media (max-width: 1080px) {
+@media (max-width: 760px) {
   .brand__side {
+    width: 100%;
+  }
+  .searchbar {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+/* 手机（iPhone 13 Pro 390px） */
+@media (max-width: 480px) {
+  .brandbar__in {
+    gap: 12px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .brand {
+    gap: 10px;
+  }
+  .brand__mark {
+    width: 40px;
+    height: 40px;
+  }
+  .brand__name {
+    font-size: 1.35rem;
+    letter-spacing: 0.12em;
+  }
+  .brand__tag {
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+  .strip__right {
     width: 100%;
     justify-content: space-between;
   }
-}
-@media (max-width: 980px) {
-  .nav__list,
-  .nav__extra {
-    display: none;
-  }
-  .nav__toggle {
-    display: inline-flex;
-  }
-  .fact {
-    display: none;
+  .theme__btn {
+    padding: 2px 9px;
+    font-size: 0.72rem;
   }
 }
 </style>

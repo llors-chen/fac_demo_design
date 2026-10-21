@@ -76,6 +76,69 @@ function exportCsv() {
   flashNotice('BOM 已导出为 CSV（演示）')
 }
 
+/* ---------------- 浏览器插件 · M3 Connector ---------------- */
+const pluginVersion = 'v1.4.2'
+const pluginInstalled = ref(false)
+const m3Linked = ref(false)
+const watching = ref(false)
+const logs = ref([])
+const received = ref(0)
+let logTimer = null
+let logSeq = 0
+
+const M3_FEED = [
+  { text: 'M3 推送：物料主数据 10023456 已创建', tone: 'ok' },
+  { text: 'M3 推送：BOM 行 03 版本 V3 回写成功', tone: 'ok' },
+  { text: 'M3 推送：库存 120 pcs → 118 pcs（A 线领料）', tone: 'ok' },
+  { text: 'M3 校验：8 处尺寸字段与图面一致', tone: 'ok' },
+  { text: 'M3 推送：工单 4000123456 绑定该 BOM', tone: 'ok' },
+  { text: 'M3 告警：物料 10023461 安全库存低于阈值', tone: 'warn' },
+  { text: 'M3 推送：价格有效期更新至 2026-11-20', tone: 'ok' },
+  { text: 'M3 回执：上载批次 ACK 200 OK', tone: 'ok' },
+]
+
+function pushLog(text, tone = 'ok') {
+  logs.value = [{ id: ++logSeq, time: nowTime(), text, tone }, ...logs.value].slice(0, 7)
+}
+
+function installPlugin() {
+  if (pluginInstalled.value) return
+  pluginInstalled.value = true
+  pushLog('插件已导入 Chrome（M3 Connector ' + pluginVersion + '）', 'ok')
+  flashNotice('浏览器插件已导入，刷新 M3 页面后生效（演示）')
+}
+
+function openM3() {
+  m3Linked.value = true
+  pushLog('已连接 M3 · 平湖工厂（租户 PH-01）', 'ok')
+  flashNotice('已在浏览器中打开 M3 物料主数据（演示）')
+}
+
+function toggleWatch() {
+  if (!m3Linked.value) {
+    flashNotice('请先连接 M3 再开始监视')
+    return
+  }
+  watching.value = !watching.value
+  if (watching.value) {
+    pushLog('开始监视 M3 传入数据（WebSocket）', 'ok')
+    window.clearInterval(logTimer)
+    logTimer = window.setInterval(() => {
+      const item = M3_FEED[received.value % M3_FEED.length]
+      received.value += 1
+      pushLog(item.text, item.tone)
+      if (received.value >= 12) {
+        watching.value = false
+        window.clearInterval(logTimer)
+        pushLog('监视暂停：本轮已接收 12 条', 'ok')
+      }
+    }, 1600)
+  } else {
+    window.clearInterval(logTimer)
+    pushLog('监视已暂停', 'warn')
+  }
+}
+
 function upload() {
   if (state.value === 'uploading') return
   state.value = 'uploading'
@@ -86,12 +149,14 @@ function upload() {
     docNo.value = `BOM-${ymd}-${props.docSuffix}`
     state.value = 'uploaded'
     flashNotice(`BOM 已上载至 M3 · 单据 ${docNo.value}（演示）`, 3200)
+    pushLog(`上载批次已提交 M3 · 单据 ${docNo.value}`, 'ok')
   }, 900)
 }
 
 onBeforeUnmount(() => {
   window.clearTimeout(workTimer)
   window.clearTimeout(noticeTimer)
+  window.clearInterval(logTimer)
 })
 </script>
 
@@ -175,6 +240,54 @@ onBeforeUnmount(() => {
         <span v-else-if="state === 'uploaded'">已上载至 M3 · 单据 {{ docNo }}</span>
         <span v-else>已{{ action }} BOM · {{ stamp }}</span>
       </p>
+
+      <!-- 浏览器插件 · M3 Connector -->
+      <div class="ext">
+        <header class="ext__head">
+          <span class="ext__badge mono">浏览器插件</span>
+          <span class="ext__title">M3 Connector · {{ pluginVersion }}</span>
+          <span class="ext__state mono" :class="{ 'is-on': m3Linked, 'is-watch': watching }">
+            {{ watching ? '监视中' : m3Linked ? '已连接 M3' : pluginInstalled ? '已安装 · 未连接' : '未安装' }}
+          </span>
+        </header>
+
+        <div class="ext__actions">
+          <button class="btn btn--sm" type="button" :disabled="pluginInstalled" @click="installPlugin">
+            <AppIcon name="download" :size="13" />
+            {{ pluginInstalled ? '插件已导入' : '一键导入插件' }}
+          </button>
+          <button class="btn btn--sm" type="button" :disabled="!pluginInstalled || m3Linked" @click="openM3">
+            <AppIcon name="external" :size="13" />
+            {{ m3Linked ? '已打开 M3' : '在 M3 中打开' }}
+          </button>
+          <button
+            class="btn btn--sm"
+            :class="{ 'btn--solid': watching }"
+            type="button"
+            :disabled="!m3Linked"
+            @click="toggleWatch"
+          >
+            <AppIcon :name="watching ? 'minus' : 'refresh'" :size="13" />
+            {{ watching ? '暂停监视' : '开始监视 M3 数据' }}
+          </button>
+        </div>
+
+        <ul class="ext__log scroll-thin">
+          <li v-if="!logs.length" class="ext__empty mono">
+            尚未开始 · 依次点「一键导入插件」→「在 M3 中打开」→「开始监视 M3 数据」
+          </li>
+          <li v-for="l in logs" :key="l.id" class="ext__item" :class="'is-' + l.tone">
+            <span class="ext__time mono">{{ l.time }}</span>
+            <span class="ext__dot"></span>
+            <span class="ext__text">{{ l.text }}</span>
+          </li>
+        </ul>
+
+        <p class="ext__foot mono">
+          插件读取当前 BOM 并在 M3 物料主数据中创建 / 更新记录；监视窗口用于确认 M3 回传的写入结果与库存变动。
+          <span v-if="received">本轮已接收 {{ received }} 条</span>
+        </p>
+      </div>
 
       <p v-if="hint" class="bom-panel__hint">{{ hint }}</p>
 
@@ -417,5 +530,116 @@ onBeforeUnmount(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* 浏览器插件 */
+.ext {
+  margin-top: 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm) 0 var(--r-sm) 0;
+  background: var(--paper-2);
+  overflow: hidden;
+}
+.ext__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-bottom: 1px dashed var(--rule);
+}
+.ext__badge {
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.46rem;
+}
+.ext__title {
+  font-size: 0.76rem;
+  font-family: var(--mono);
+  color: var(--ink-2);
+}
+.ext__state {
+  margin-left: auto;
+  font-size: 0.46rem;
+  padding: 1px 7px;
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-pill);
+  color: var(--ink-4);
+  white-space: nowrap;
+}
+.ext__state.is-on {
+  border-color: var(--accent-2);
+  background: var(--accent-3);
+  color: var(--accent-ink);
+}
+.ext__state.is-watch {
+  border-color: var(--accent-ink);
+  background: var(--accent);
+  color: #fff;
+}
+.ext__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 9px 10px;
+}
+.ext__log {
+  margin: 0;
+  padding: 0 10px 6px;
+  list-style: none;
+  max-height: 132px;
+  overflow-y: auto;
+}
+.ext__empty {
+  font-size: 0.48rem;
+  line-height: 1.7;
+  color: var(--ink-4);
+  padding: 4px 0;
+}
+.ext__item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--rule);
+  font-size: 0.68rem;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.ext__item:last-child {
+  border-bottom: none;
+}
+.ext__time {
+  flex: none;
+  font-size: 0.44rem;
+  color: var(--ink-4);
+}
+.ext__dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.ext__item.is-warn .ext__dot {
+  background: var(--ink);
+}
+.ext__item.is-warn .ext__text {
+  color: var(--ink);
+}
+.ext__text {
+  min-width: 0;
+}
+.ext__foot {
+  padding: 7px 10px 9px;
+  border-top: 1px dashed var(--rule);
+  font-size: 0.46rem;
+  line-height: 1.65;
+  color: var(--ink-4);
+}
+.ext__foot span {
+  color: var(--accent-ink);
 }
 </style>

@@ -79,6 +79,18 @@ export const processLog = [
       { label: '销售回馈客户', time: '11:32' },
     ],
   },
+  {
+    no: '04',
+    anchor: 'dashboard',
+    title: '全流程总览 · 顺序与交接',
+    meta: '5 个环节 / 154 min',
+    status: '总览',
+    note: '01 → 01-00 → 02 → 02-00 → 03 的顺序链：每个环节的角色、耗时、产出与交接物，点击可跳转',
+    times: [
+      { label: '需求阶段', time: '09:12' },
+      { label: '商务阶段', time: '11:32' },
+    ],
+  },
 ]
 
 

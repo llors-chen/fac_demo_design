@@ -2,18 +2,19 @@
 /**
  * 首页装配：三段式
  *   ① 报头 + 导航条（SiteHeader）
- *   ② 主体：01 需求粗整理 → 01-00 报表逐节详填 → 02 产品目录检索 chatbot → 02-00 车间模拟看板 → 03 销售回馈与报价
- *   ③ 页脚（SiteFooter）
+ *   ② 主体：01 需求粗整理 → 01-00 报表逐节详填 → 02 产品目录检索 chatbot → 02-00 车间模拟看板 → 03 销售回馈与报价 → 04 全流程总览
+ *   ③ 收尾 CTA 与页脚（SiteFooter）均已注释隐藏，页面到 03 报价结束
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from './components/AppIcon.vue'
 import FactorySim from './components/FactorySim.vue'
+import ProcessDashboard from './components/ProcessDashboard.vue'
 import ProductCatalogChat from './components/ProductCatalogChat.vue'
 import RequirementFlow from './components/RequirementFlow.vue'
 import RequirementIntake from './components/RequirementIntake.vue'
 import LeadStory from './components/LeadStory.vue'
 import SalesQuoteChat from './components/SalesQuoteChat.vue'
-import SiteFooter from './components/SiteFooter.vue'
+// import SiteFooter from './components/SiteFooter.vue'  // 页脚已隐藏
 import SiteHeader from './components/SiteHeader.vue'
 import { usePageProgress } from './composables/useScrollProgress.js'
 
@@ -55,7 +56,10 @@ const percent = computed(() => Math.round(progress.value * 100))
     <!-- 03 销售端 · 回馈与报价（chatbot 工具） -->
     <SalesQuoteChat />
 
-    <!-- 收尾条 -->
+    <!-- 04 全流程总览（Dashboard，可点击跳转） -->
+    <ProcessDashboard />
+
+    <!-- 收尾条（官网 CTA，已按需求注释隐藏）
     <section class="outro">
       <div class="wrap outro__in">
         <div>
@@ -77,9 +81,12 @@ const percent = computed(() => Math.round(progress.value * 100))
         </div>
       </div>
     </section>
+    -->
   </main>
 
+  <!-- 页脚（四栏链接 / 订阅条 / 版权条，已按需求注释隐藏）
   <SiteFooter />
+  -->
 
   <!-- 阅读进度（右侧竖条） -->
   <div class="rail" aria-hidden="true">
@@ -200,5 +207,8 @@ const percent = computed(() => Math.round(progress.value * 100))
   .rail {
     display: none;
   }
+}
+main {
+  padding-bottom: clamp(40px, 6vw, 90px);
 }
 </style>

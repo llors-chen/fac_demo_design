@@ -1,396 +1,256 @@
 <script setup>
 /**
- * 头版（报纸第一版）：导语 + 流程时间记录 + 数据栏 + 底部动态条
+ * 流程时间记录（工具版头屏）
+ *
+ * 官网风格的左侧导语、右侧数据栏、厂区快讯滚动条已注释隐藏，
+ * 只保留横向时间轴：5 个环节，点按跳到对应区块。
  */
 import AppIcon from './AppIcon.vue'
-import { frontStats, processLog } from '../data/site.js'
+import { processLog } from '../data/site.js'
 
 function goto(anchor) {
   document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const tickerItems = [
-  '本月交付 8 套样品解决方案，覆盖 E-Mobility 与工业传动',
-  '图纸库新增 216 张设计成果，全部完成版本校核',
-  '平湖工厂完成产线换型，交付周期缩短至 7 天',
-  '新增 DWG 在线浏览能力：无需安装 CAD 即可批注与查阅',
-]
+const total = processLog.length
+const doneCount = processLog.filter((s) => s.status !== '进行中').length
 </script>
 
 <template>
-  <section class="front" aria-labelledby="front-headline">
+  <section class="flow" aria-labelledby="flow-heading">
     <div class="wrap">
-      <div class="front__grid">
-        <!-- 头条 -->
-        <article class="lead">
-          <p class="kicker">本期头条 · 设计成果公开</p>
-          <h2 id="front-headline" class="lead__head">
-            以图纸为准，<br />把制造讲清楚
-          </h2>
-          <p class="lead__deck">
-            从客户的一句口语记录与一堆附件，到可浏览的 DWG 与可上载 M3 的 BOM：
-            我们把这条链路摊开在纸面上，也搬进浏览器里。
-          </p>
-          <p class="lead__byline mono">
-            本报记者 · 工艺与设计中心 ／ 2026-10-20 ／ 第 001 版
-          </p>
-
-          <div class="lead__body cols-2">
-            <p class="dropcap">
-              工业制造的说服力，从来不在形容词里，而在图纸上：一条中心线定基准，
-              一组尺寸链定装配，一行技术要求定热处理。我们把这三样东西放到了网页上——
-              不是为了好看，而是为了让销售、研发、生产、客户看到同一张图、同一组数。
-            </p>
-            <p>
-              首页主体按“三段式”展开：最上方是报头与导航条，中间是三个业务区块——
-              客需需求整理（含客户附件）、历史图纸检索与 DWG 在线浏览、需求分析与组装交互；最下方是索引式的页脚。
-              右侧的流程时间记录给出每一步的样例时间与状态。
-            </p>
-            <p>
-              所有图纸均来自真实工程习惯：图框、标题栏、明细表、粗糙度与形位公差符号一应俱全。
-              读者不需要安装任何 CAD 软件，也不需要下载附件，就能完成一次“看图—核对—留痕”的闭环。
-            </p>
-          </div>
-
-          <div class="lead__cta">
-            <button class="btn btn--solid" type="button" @click="goto('req-intake')">
-              <AppIcon name="ruler" :size="16" />
-              从需求整理看起
-            </button>
-            <button class="btn" type="button">
-              <AppIcon name="download" :size="16" />
-              下载企业样本
-            </button>
-            <button class="btn" type="button">
-              <AppIcon name="clock" :size="16" />
-              预约工厂参观
-            </button>
-          </div>
-        </article>
-
-        <!-- 右栏：流程时间记录 + 数据 -->
-        <aside class="index">
-          <div class="index__box paper-card">
-            <h3 class="index__title">
-              流程时间记录
-              <span class="index__sub mono">2026-10-20</span>
-            </h3>
-            <ol class="index__list">
-              <li v-for="s in processLog" :key="s.no">
-                <button class="index__item" type="button" @click="goto(s.anchor)">
-                  <span class="index__no mono">{{ s.no }}</span>
-                  <span class="index__main">
-                    <span class="index__name">{{ s.title }}</span>
-                    <span class="index__meta mono">{{ s.meta }}</span>
-                    <span class="index__times">
-                      <span v-for="t in s.times" :key="t.time" class="index__time">
-                        <em class="index__clock mono">{{ t.time }}</em>
-                        {{ t.label }}
-                      </span>
-                    </span>
-                    <span class="index__note">{{ s.note }}</span>
-                  </span>
-                  <span class="index__right">
-                    <span class="index__state mono" :class="{ 'is-doing': s.status === '进行中' }">
-                      {{ s.status }}
-                    </span>
-                    <AppIcon name="arrowRight" :size="16" class="index__arrow" />
-                  </span>
-                </button>
-              </li>
-            </ol>
-          </div>
-
-          <div class="index__box index__box--stats">
-            <h3 class="index__title">数据栏</h3>
-            <dl class="stats">
-              <div v-for="s in frontStats" :key="s.label" class="stats__row">
-                <dt class="stats__label">{{ s.label }}</dt>
-                <dd class="stats__value">
-                  {{ s.value }}<span class="stats__unit">{{ s.unit }}</span>
-                </dd>
-              </div>
-            </dl>
-            <div class="index__stamp">
-              <span class="stamp">已校核 · 2026</span>
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      <!-- 动态条 -->
-      <div class="ticker" aria-hidden="true">
-        <span class="ticker__label mono">厂区快讯</span>
-        <div class="ticker__viewport">
-          <div class="ticker__track">
-            <span v-for="(t, i) in [...tickerItems, ...tickerItems]" :key="i" class="ticker__item">
-              {{ t }}<em class="ticker__sep">◆</em>
-            </span>
-          </div>
+      <!-- 标题行 -->
+      <div class="flow__head">
+        <div>
+          <p class="kicker">流程时间记录 · Process log</p>
+          <h2 id="flow-heading" class="flow__title">流程演示</h2>
+        </div>
+        <div class="flow__meta">
+          <span class="mono">{{ total }} 个环节</span>
+          <span class="flow__dot"></span>
+          <span class="mono">{{ doneCount }} 个已完成</span>
+          <span class="flow__dot"></span>
+          <span class="mono">2026-10-21</span>
         </div>
       </div>
+
+      <!-- 横向时间轴 -->
+      <ol class="hflow">
+        <li v-for="(s, i) in processLog" :key="s.no" class="hstep">
+          <button class="hstep__btn" type="button" @click="goto(s.anchor)">
+            <span class="hstep__top">
+              <span class="hstep__no mono">{{ s.no }}</span>
+              <span class="hstep__state mono" :class="{ 'is-doing': s.status === '进行中' }">
+                {{ s.status }}
+              </span>
+            </span>
+
+            <span class="hstep__title">{{ s.title }}</span>
+
+            <span class="hstep__times">
+              <span v-for="t in s.times" :key="t.time" class="hstep__time">
+                <em class="mono">{{ t.time }}</em>
+                {{ t.label }}
+              </span>
+            </span>
+
+            <span class="hstep__note">{{ s.note }}</span>
+
+            <span class="hstep__meta mono">{{ s.meta }}</span>
+          </button>
+
+          <span v-if="i < total - 1" class="hstep__link" aria-hidden="true">
+            <AppIcon name="chevronRight" :size="16" />
+          </span>
+        </li>
+      </ol>
     </div>
   </section>
 </template>
 
 <style scoped>
-.front {
-  padding: clamp(26px, 4vw, 54px) 0 clamp(18px, 2.4vw, 30px);
-}
-.front__grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: clamp(24px, 3.4vw, 52px);
-  align-items: start;
+.flow {
+  padding: clamp(22px, 3vw, 40px) 0 clamp(6px, 1vw, 12px);
 }
 
-/* 头条 */
-.lead__head {
-  margin-top: 12px;
-  font-size: clamp(2.1rem, 5vw, 3.9rem);
-  line-height: 1.12;
-  letter-spacing: 0.02em;
-}
-.lead__deck {
-  margin-top: 16px;
-  padding: 6px 0 6px 16px;
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  font-size: clamp(1rem, 1.4vw, 1.14rem);
-  color: var(--ink-2);
-  max-width: 62ch;
-}
-.lead__byline {
-  margin-top: 14px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rule);
-  font-size: 0.66rem;
-}
-.lead__body {
-  margin-top: 18px;
-  font-size: 1rem;
-  color: var(--ink-2);
-  text-align: justify;
-}
-.lead__body p + p {
-  margin-top: 0.9em;
-}
-.lead__cta {
+/* 标题行 */
+.flow__head {
   display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 26px;
-}
-
-/* 右栏 */
-.index {
-  display: grid;
-  gap: 18px;
-  position: relative;
-}
-.index__box {
-  padding: 18px 18px 16px;
-}
-.index__box--stats {
-  background: var(--paper-3);
-}
-.index__title {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: 1.02rem;
-  letter-spacing: 0.1em;
-  padding-bottom: 8px;
+  padding-bottom: 10px;
   border-bottom: 3px double var(--rule-3);
 }
-.index__sub {
-  margin-left: auto;
-  font-size: 0.54rem;
-  color: var(--ink-4);
-}
-.index__times {
-  display: grid;
-  gap: 2px;
+.flow__title {
   margin-top: 4px;
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
 }
-.index__time {
+.flow__meta {
   display: flex;
-  align-items: baseline;
-  gap: 7px;
-  font-size: 0.74rem;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.58rem;
   color: var(--ink-3);
-  line-height: 1.5;
+  padding-bottom: 4px;
 }
-.index__clock {
-  font-style: normal;
-  font-size: 0.56rem;
-  color: var(--accent-ink);
-  padding: 1px 5px;
-  border-radius: var(--r-pill);
-  background: var(--accent-3);
-  white-space: nowrap;
+.flow__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
 }
-.index__right {
-  margin-left: auto;
+
+/* 横向时间轴 */
+.hflow {
   display: grid;
-  justify-items: end;
-  gap: 6px;
-  flex: none;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0;
+  margin: clamp(14px, 2vw, 22px) 0 0;
+  padding: 0;
+  list-style: none;
 }
-.index__state {
-  font-size: 0.46rem;
-  padding: 2px 6px;
+.hstep {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  padding-right: 18px;
+}
+.hstep__btn {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 0 var(--r-md) 0 var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5)),
+    var(--paper-2);
+  text-align: left;
+  transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease,
+    background 0.22s ease;
+}
+/* 顶部一条与时间轴的连接线 */
+.hstep__btn::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: -1px;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.85;
+}
+.hstep__btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-2);
+  background: var(--accent-3);
+  box-shadow: var(--shadow-s);
+}
+.hstep__btn:hover::before {
+  background: var(--accent-ink);
+}
+.hstep__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hstep__no {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--r-xs);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.56rem;
+}
+.hstep__state {
+  margin-left: auto;
+  font-size: 0.44rem;
+  padding: 1px 7px;
   border: 1px solid var(--rule-2);
   border-radius: var(--r-pill);
   color: var(--ink-3);
   white-space: nowrap;
 }
-.index__state.is-doing {
+.hstep__state.is-doing {
   border-color: var(--accent-2);
   background: var(--accent-3);
   color: var(--accent-ink);
 }
-.index__list {
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-.index__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 6px 12px 8px;
-  text-align: left;
-  border-bottom: 1px dashed var(--rule);
-  border-radius: var(--r-sm) 0 var(--r-sm) 0;
-  transition: background 0.24s ease, padding-left 0.24s ease;
-}
-.index__item:hover {
-  background: var(--accent-3);
-  padding-left: 8px;
-}
-.index__no {
-  font-size: 0.8rem;
-  color: var(--accent-ink);
-  padding-top: 3px;
-}
-.index__main {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-.index__name {
-  font-size: 0.98rem;
+.hstep__title {
+  font-size: 0.92rem;
   font-weight: 700;
+  line-height: 1.4;
   color: var(--ink);
 }
-.index__meta {
-  font-size: 0.6rem;
+.hstep__times {
+  display: grid;
+  gap: 3px;
+  margin: 2px 0 0;
 }
-.index__note {
-  font-size: 0.78rem;
-  color: var(--ink-3);
-  line-height: 1.5;
-}
-.index__arrow {
-  margin-left: auto;
-  margin-top: 4px;
-  color: var(--ink-4);
-  transition: transform 0.24s ease, color 0.24s ease;
-}
-.index__item:hover .index__arrow {
-  color: var(--accent-ink);
-  transform: translateX(4px);
-}
-.stats {
-  margin: 10px 0 0;
-}
-.stats__row {
+.hstep__time {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 7px 0;
-  border-bottom: 1px dotted var(--rule-2);
-}
-.stats__label {
-  font-size: 0.86rem;
+  gap: 6px;
+  font-size: 0.72rem;
   color: var(--ink-2);
+  line-height: 1.45;
 }
-.stats__value {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+.hstep__time em {
+  font-style: normal;
+  flex: none;
+  font-size: 0.52rem;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent-3);
+  color: var(--accent-ink);
 }
-.stats__unit {
-  margin-left: 3px;
+.hstep__note {
   font-size: 0.7rem;
-  font-weight: 400;
+  line-height: 1.6;
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hstep__meta {
+  font-size: 0.46rem;
+  color: var(--ink-4);
+}
+.hstep__link {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--ink-3);
 }
-.index__stamp {
-  margin-top: 16px;
-  text-align: right;
-}
 
-/* 动态条 */
-.ticker {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: clamp(24px, 3vw, 40px);
-  padding-top: 12px;
-  border-top: 3px double var(--rule-3);
-}
-.ticker__label {
-  flex: none;
-  padding: 3px 10px;
-  border: 1px solid var(--ink);
-  border-radius: var(--r-pill);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 0.6rem;
-}
-.ticker__viewport {
-  overflow: hidden;
-  flex: 1;
-  mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
-}
-.ticker__track {
-  display: inline-flex;
-  gap: 34px;
-  white-space: nowrap;
-  animation: ticker 46s linear infinite;
-}
-.ticker__item {
-  font-size: 0.86rem;
-  color: var(--ink-2);
-}
-.ticker__sep {
-  margin-left: 34px;
-  color: var(--accent);
-  font-style: normal;
-}
-@keyframes ticker {
-  from {
-    transform: translateX(0);
+@media (max-width: 1180px) {
+  .hflow {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
-  to {
-    transform: translateX(-50%);
+  .hstep {
+    padding-right: 0;
+  }
+  .hstep__link {
+    display: none;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ticker__track {
-    animation: none;
-  }
-}
-
-@media (max-width: 980px) {
-  .front__grid {
+@media (max-width: 760px) {
+  .hflow {
     grid-template-columns: 1fr;
+  }
+  .hstep__btn::before {
+    left: 0;
+    right: 0;
   }
 }
 </style>

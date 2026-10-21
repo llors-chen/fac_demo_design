@@ -125,8 +125,13 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
         <div>
           <p class="kicker">工厂模拟 · 产能与人力</p>
           <h3 class="sec-head__title">车间 4 条流水线 · 库存与成品状态 · 人力成本推算</h3>
+          <p class="sec-head__tag">
+            <span class="simtag mono">模拟数据参考</span>
+            本区为演示用模拟数据（固定种子生成），非真实产线数据，不可用于考核或排产决策
+          </p>
         </div>
         <dl class="sec-head__meta">
+          <div><dt class="mono">数据口径</dt><dd>模拟 · Simulated</dd></div>
           <div><dt class="mono">流水线</dt><dd>{{ lines.length }} 条</dd></div>
           <div><dt class="mono">库存零件</dt><dd>{{ parts.length }} 种</dd></div>
           <div><dt class="mono">成品</dt><dd>{{ products.length }} 种</dd></div>
@@ -136,6 +141,7 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
       <p class="sec-note">
         把车间的"人—机—料"摊在一块看板上：4 条流水线的人工延迟饱和度与推荐系数对照、200 种库存零件与
         20 种成品的状态分布、人员出勤分布，以及由此推算的人工成本与人力时间报表。班次切换会同步影响产出、饱和度与成本。
+        <b class="sec-note__warn">以上数值均为模拟参考值（模拟数据），仅用于展示指标口径与交互。</b>
       </p>
 
       <!-- 班次 -->
@@ -437,6 +443,31 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   color: var(--ink-3);
 }
 
+.sec-head__tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: var(--ink-3);
+}
+.simtag {
+  flex: none;
+  font-size: 0.46rem;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+.sec-note__warn {
+  margin-left: 4px;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
 /* 班次 */
 .shiftbar {
   display: flex;
@@ -510,7 +541,8 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   background: var(--accent-3);
 }
 .kpi--alert {
-  border-color: var(--ink-2);
+  border-color: var(--danger);
+  background: var(--danger-soft);
 }
 .kpi__label {
   font-size: 0.48rem;
@@ -584,19 +616,19 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   white-space: nowrap;
 }
 .line__state.is-ok {
-  border-color: var(--accent-2);
-  background: var(--accent-3);
-  color: var(--accent-ink);
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 .line__state.is-warn {
-  border-color: var(--rule-2);
-  background: var(--paper-3);
-  color: var(--ink-2);
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 .line__state.is-hot {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper);
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .sat {
@@ -617,14 +649,14 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: var(--r-pill);
-  background: var(--accent);
+  background: var(--ok);
   transition: width 0.35s ease;
 }
 .sat__fill.is-warn {
-  background: var(--ink-3);
+  background: var(--warn);
 }
 .sat__fill.is-hot {
-  background: var(--ink);
+  background: var(--danger);
 }
 .sat__mark {
   position: absolute;
@@ -760,17 +792,18 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   display: block;
   aspect-ratio: 1;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--ok);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .pcell.is-warn {
-  background: var(--ink-3);
+  background: var(--warn);
 }
 .pcell.is-short {
-  background: var(--ink);
+  background: var(--danger);
 }
 .pcell.is-idle {
-  background: var(--paper-4);
+  background: var(--ink-4);
+  opacity: 0.55;
 }
 .pcell.is-dim {
   opacity: 0.18;
@@ -799,16 +832,17 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   width: 9px;
   height: 9px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--ok);
 }
 .pkey__swatch.is-warn {
-  background: var(--ink-3);
+  background: var(--warn);
 }
 .pkey__swatch.is-short {
-  background: var(--ink);
+  background: var(--danger);
 }
 .pkey__swatch.is-idle {
-  background: var(--paper-4);
+  background: var(--ink-4);
+  opacity: 0.55;
 }
 .pkeys__note {
   margin-left: auto;
@@ -883,14 +917,19 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   color: var(--ink-3);
 }
 .prow.is-stock .prow__state {
-  border-color: var(--accent-2);
-  background: var(--accent-3);
-  color: var(--accent-ink);
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  color: var(--ok);
 }
 .prow.is-ship .prow__state {
-  border-color: var(--ink-2);
-  background: var(--paper-3);
-  color: var(--ink-2);
+  border-color: var(--info);
+  background: var(--info-soft);
+  color: var(--info);
+}
+.prow.is-wip .prow__state {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+  color: var(--warn);
 }
 .prow__delay {
   font-size: 0.5rem;
@@ -898,7 +937,7 @@ const satTone = (v) => (v > RECOMMENDED_SATURATION + 0.06 ? 'hot' : v >= RECOMME
   color: var(--ink-4);
 }
 .prow__delay.is-late {
-  color: var(--ink);
+  color: var(--danger);
   font-weight: 700;
 }
 

@@ -61,7 +61,8 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: calc(var(--nav-h) + 12px);
+  /* 导航条已隐藏，锚点偏移收小 */
+  scroll-padding-top: 18px;
 }
 
 body {
@@ -481,5 +482,582 @@ svg {
   *::after {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
+  }
+}
+
+/* ============================================================================
+   主题：演示（默认，印刷纸感） / 工具（企业内部工具）
+   <html data-theme="tool"> 即切换；令牌集中在下面两块，组件无需改动
+   ========================================================================== */
+
+:root {
+  /* 语义色（演示主题偏印刷、低饱和） */
+  --ok: #7fb069;
+  --ok-soft: #e7f1de;
+  --warn: #b08a4a;
+  --warn-soft: #f3ebd8;
+  --danger: #a8432f;
+  --danger-soft: #f4e3de;
+  --info: #56758a;
+  --info-soft: #e4ebf0;
+}
+
+html[data-theme='tool'] {
+  /* 中性底 + 高对比文字 */
+  --paper: #f7f8fa;
+  --paper-2: #ffffff;
+  --paper-3: #eef0f3;
+  --paper-4: #e3e6eb;
+  --surface: #ffffff;
+
+  --ink: #1f2329;
+  --ink-2: #51565d;
+  --ink-3: #6b7280;
+  --ink-4: #8a9099;
+
+  --rule: rgba(31, 35, 41, 0.1);
+  --rule-2: rgba(31, 35, 41, 0.16);
+  --rule-3: rgba(31, 35, 41, 0.28);
+
+  /* 主色：沿用品牌绿，但加深到工具可用对比度 */
+  --accent: #2f9e6b;
+  --accent-2: #a7dcc3;
+  --accent-3: #e8f5ee;
+  --accent-ink: #17704a;
+
+  /* 语义色（工具口径） */
+  --ok: #12a150;
+  --ok-soft: #e6f6ec;
+  --warn: #d97706;
+  --warn-soft: #fdf3e3;
+  --danger: #d92d20;
+  --danger-soft: #fdeceb;
+  --info: #2563eb;
+  --info-soft: #eaf1fe;
+
+  /* 直角、紧凑 */
+  --r-xs: 3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --corner: 0px;
+
+  --shadow-s: 0 1px 2px rgba(31, 35, 41, 0.06);
+  --shadow-m: 0 2px 8px rgba(31, 35, 41, 0.08);
+
+  /* UI 字：无衬线（覆盖 --serif 即可让所有 var(--serif) 跟随） */
+  --serif: 'Inter', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui,
+    sans-serif;
+
+  --nav-h: 56px;
+  font-size: 17px;
+}
+
+/* 去纸感：无噪点、无暗角 */
+html[data-theme='tool'] body::before {
+  opacity: 0;
+}
+html[data-theme='tool'] body::after {
+  background: none;
+}
+
+/* 卡片：四角小圆角 + 细边，去掉角标与投影 */
+html[data-theme='tool'] :is(.corner-box, .paper-card) {
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-md);
+  box-shadow: none;
+}
+html[data-theme='tool'] :is(.corner-box, .paper-card)::before,
+html[data-theme='tool'] :is(.corner-box, .paper-card)::after {
+  display: none;
+}
+
+/* 区块抬头：双线 → 单线 */
+html[data-theme='tool'] :is(.sec-head, .flow__head, .chat-head, .cmp-head, .dwg-head) {
+  border-bottom: 1px solid var(--rule-2);
+}
+
+/* 小号等宽标签抬到可读下限，并去掉全大写/宽字距的装饰 */
+html[data-theme='tool'] .mono,
+html[data-theme='tool'] .kicker {
+  font-size: max(0.66rem, 10.5px) !important;
+  letter-spacing: 0.03em !important;
+  text-transform: none !important;
+}
+
+/* 印章在工具里是噪音 */
+html[data-theme='tool'] .stamp {
+  display: none;
+}
+
+/* 表格更紧凑、数字等宽对齐 */
+html[data-theme='tool'] :is(.ltable, .diff, .qtable, .ctable, .rtable) {
+  font-variant-numeric: tabular-nums;
+}
+html[data-theme='tool'] :is(.ltable, .diff, .qtable, .ctable, .rtable) th {
+  background: var(--paper-3);
+}
+/* ============================================================================
+   手机端适配（目标宽度：iPhone 13 Pro 390px；≤480px 生效，简版展示）
+   ========================================================================== */
+@media (max-width: 480px) {
+  /* 版心与字号 */
+  .wrap {
+    padding: 0 14px;
+  }
+  body {
+    font-size: 15px;
+  }
+  .sec-head__no,
+  .cmp-head__no,
+  .dwg-head__no {
+    font-size: 1.75rem !important;
+    -webkit-text-stroke-width: 1.1px;
+  }
+  .sec-head__title,
+  .flow__title,
+  .dwg-head__title,
+  .cmp-head__title {
+    font-size: 1.16rem !important;
+    line-height: 1.4;
+  }
+  /* 抬头右侧的元信息在手机上收起，避免挤压标题 */
+  .sec-head__meta,
+  .cmp-head__meta,
+  .dwg-head__meta {
+    display: none !important;
+  }
+  .sec-note {
+    font-size: 0.82rem !important;
+    line-height: 1.75;
+  }
+
+  /* 按钮与标签 */
+  .btn {
+    padding: 0.46em 0.86em;
+    font-size: 0.84rem;
+  }
+  .btn--sm {
+    padding: 0.32em 0.64em;
+    font-size: 0.76rem;
+  }
+
+  /* 所有数据表改为可横向滚动，不再挤压 */
+  .ltable,
+  .diff,
+  .qtable,
+  .ctable,
+  .rtable {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ltable thead,
+  .diff thead,
+  .qtable thead,
+  .ctable thead,
+  .rtable thead,
+  .ltable tbody,
+  .diff tbody,
+  .qtable tbody,
+  .ctable tbody,
+  .rtable tbody {
+    display: table;
+    width: 100%;
+    min-width: 460px;
+  }
+
+  /* 横向流程时间轴：单列 */
+  .hflow {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .hstep {
+    padding-right: 0 !important;
+  }
+  .hstep__link {
+    display: none !important;
+  }
+
+  /* 卡片网格：一律单列/两列 */
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  .lines,
+  .products,
+  .groups,
+  .attach__grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pgrid {
+    grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+    gap: 2px !important;
+  }
+  .mid,
+  .bottom,
+  .flow__body,
+  .intake__row,
+  .align__row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 图表面板 */
+  .dwg-row {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+  .dwg-row > :first-child {
+    height: 56vh !important;
+    min-height: 320px !important;
+  }
+  .chat-shell,
+  .tool {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .msg {
+    max-width: 100% !important;
+  }
+  .turn {
+    max-width: 100% !important;
+  }
+  .chat-input__chips {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .chip {
+    flex: none;
+    font-size: 0.7rem;
+  }
+
+  /* 交期甘特：标签列收窄 */
+  .gantt__row {
+    grid-template-columns: 6.4em minmax(40px, 1fr) 2.6em !important;
+    gap: 6px !important;
+  }
+  .gantt__note {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* 右侧阅读进度与回顶按钮 */
+  .rail {
+    display: none !important;
+  }
+  .totop {
+    right: 10px !important;
+    bottom: 12px !important;
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  /* 报头 */
+  .strip__in {
+    gap: 8px;
+    padding: 6px 0;
+  }
+  .strip__issue {
+    display: none;
+  }
+}
+/* ============================================================================
+   窄屏可读性（≤420px，含 320/360/375 等机型）
+   根字号抬到 17px + 给所有小号标签设下限，避免 0.4x rem 变成 7px
+   ========================================================================== */
+@media (max-width: 420px) {
+  html,
+  html[data-theme='tool'] {
+    font-size: 17px !important;
+  }
+  body {
+    font-size: 15.5px;
+    line-height: 1.7;
+  }
+
+  /* 等宽小标签 / 英文小标题：抬到 11.5px 起 */
+  [class*='mono'],
+  .kicker {
+    font-size: max(0.68rem, 11.5px) !important;
+    line-height: 1.5 !important;
+    letter-spacing: 0.02em !important;
+  }
+
+  /* 其余小号文字组件统一给个下限 */
+  :is(
+      .kpi__label,
+      .kpi__sub,
+      .line__meta,
+      .line__stats dt,
+      .hstep__state,
+      .hstep__note,
+      .att__state,
+      .pkey,
+      .ext__state,
+      .ext__badge,
+      .ext__foot,
+      .form__row dt,
+      .rtable th,
+      .ctable th,
+      .qtable th,
+      .ltable th,
+      .diff th,
+      .prow__state,
+      .prow__code,
+      .prow__qty,
+      .party__role,
+      .party__state,
+      .qa__tag,
+      .tool__badge,
+      .tool__meta,
+      .cm__badge,
+      .cm__why,
+      .chip,
+      .pill,
+      .tag,
+      .steps-bar__no,
+      .steps-bar__size,
+      .pane__hint,
+      .pane__note,
+      .side__hint,
+      .stamp
+    ) {
+    font-size: max(0.66rem, 11px) !important;
+    line-height: 1.55 !important;
+  }
+
+  /* 正文类：0.8rem 及以下抬到 13px */
+  :is(
+      .sec-note,
+      .pane__note,
+      .msg__bubble,
+      .turn__bubble,
+      .card__foot,
+      .bom-panel__lead,
+      .list,
+      .notes,
+      .form__row dd,
+      .rtable td,
+      .ctable td,
+      .qtable td,
+      .ltable td,
+      .att__key,
+      .hstep__time,
+      .turn__list,
+      .askbox__list
+    ) {
+    font-size: max(0.8rem, 13px) !important;
+    line-height: 1.65 !important;
+  }
+
+  /* 小标题与数值 */
+  .kpi__value {
+    font-size: 1.6rem !important;
+  }
+  .card__title,
+  .pane__title,
+  .line__name,
+  .tool__name {
+    font-size: 1rem !important;
+  }
+  .hstep__title {
+    font-size: 1rem !important;
+  }
+
+  /* 更紧的内边距，给文字腾地方 */
+  .wrap {
+    padding: 0 12px;
+  }
+  .card,
+  .panel,
+  .stage,
+  .picker,
+  .bom-panel {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .kpis {
+    gap: 6px !important;
+  }
+}
+/* ============================================================================
+   窄屏排版再降级（≤430px）：把"一行多列"的紧凑行拆成可读的多行
+   ========================================================================== */
+@media (max-width: 430px) {
+  /* 流水线统计：4 列 → 2×2 */
+  .line__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    row-gap: 8px !important;
+    column-gap: 10px !important;
+  }
+  .line__stats dd {
+    font-size: 0.95rem !important;
+  }
+
+  /* 成品行：改为可换行流式布局，型号单独占行 */
+  .prow {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px !important;
+    padding: 7px 8px !important;
+  }
+  .prow__code {
+    flex: none;
+  }
+  .prow__name {
+    flex: 1 1 auto;
+    font-size: 0.84rem !important;
+  }
+  .prow__qty {
+    flex: none;
+    text-align: left !important;
+  }
+  .prow__state {
+    flex: none;
+    padding: 1px 8px !important;
+  }
+  .prow__delay {
+    margin-left: auto;
+  }
+
+  /* 需求 / 初判 / 报表字段：标签与值上下排 */
+  .rough__row,
+  .req__row,
+  .form__row {
+    grid-template-columns: 1fr !important;
+    gap: 1px !important;
+    padding: 6px 0 !important;
+  }
+  .rough__row dt,
+  .req__row dt {
+    padding-top: 0 !important;
+  }
+
+  /* KPI：2 列但数值收一档，避免 ￥13,642 换行 */
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .kpi {
+    padding: 9px 10px !important;
+  }
+  .kpi__value {
+    font-size: 1.38rem !important;
+    white-space: nowrap;
+  }
+
+  /* 卡片抬头：隐藏右侧统计小字 */
+  .card__sub {
+    display: none !important;
+  }
+
+  /* 按钮组：占满整行，不再挤成一条 */
+  .bom__actions,
+  .ext__actions,
+  .empty__actions,
+  .feedback__actions,
+  .rough__foot {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  .bom__actions .btn,
+  .ext__actions .btn,
+  .empty__actions .btn,
+  .feedback__actions .btn,
+  .rough__foot .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 聊天输入：图标 + 输入框 + 按钮在 380 下改为两行 */
+  .chat-input__row {
+    flex-wrap: wrap;
+    padding: 8px 10px !important;
+  }
+  .chat-input__field {
+    flex: 1 1 60%;
+  }
+  .chat-input__row .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  /* 看图器工具条换行、状态栏紧凑 */
+  .tools {
+    flex-wrap: wrap !important;
+  }
+  .tools__hint {
+    display: none !important;
+  }
+  .statusbar {
+    gap: 8px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* 图层面板 / 搜索框之类的小浮层收窄 */
+  .layerpanel {
+    width: 62% !important;
+  }
+
+  /* 附件卡片：图标与状态不再抢宽度 */
+  .att {
+    gap: 8px !important;
+    padding: 9px 10px !important;
+  }
+  .att__state {
+    display: none !important;
+  }
+
+  /* 流程卡与页签：宽度全给文字 */
+  .hstep__btn {
+    padding: 10px 12px 12px !important;
+  }
+  .tabs {
+    gap: 0 !important;
+  }
+  .tab {
+    padding: 7px 8px !important;
+  }
+}
+/* ≤430px 补充：线体卡抬头、产品目录分支与命中行 */
+@media (max-width: 430px) {
+  .line__head {
+    flex-wrap: wrap;
+    gap: 6px !important;
+  }
+  .line__state {
+    margin-left: auto;
+  }
+  /* 02 分支页签：上下两行，各占满宽 */
+  .branches {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  .branches__note {
+    margin-left: 0 !important;
+    text-align: left !important;
+    line-height: 1.6;
+  }
+  /* 检索命中行：隐藏"打开"小字，把宽度留给命中理由 */
+  .hit__open {
+    display: none !important;
+  }
+  .hit {
+    gap: 8px !important;
+    padding: 8px 10px !important;
+  }
+  .hit__score {
+    width: 40px !important;
+    height: 34px !important;
+  }
+  /* 详情条：状态换到下一行 */
+  .detail__bar {
+    row-gap: 4px !important;
+  }
+  .detail__state {
+    margin-left: 0 !important;
   }
 }

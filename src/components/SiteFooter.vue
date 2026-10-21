@@ -4,7 +4,7 @@
  * 全部为按钮，不做跳转。
  */
 import AppIcon from './AppIcon.vue'
-import { footerColumns, footerLegal } from '../data/site.js'
+import { footerColumns } from '../data/site.js'
 
 const year = new Date().getFullYear()
 </script>
@@ -75,9 +75,12 @@ const year = new Date().getFullYear()
         </section>
       </nav>
 
-      <!-- 底部信息 -->
+      <!-- 底部信息（法律链接 / 备案号 / 语言切换已按需求注释隐藏，只留一行流程演示说明） -->
       <div class="bottom">
-        <p class="bottom__copy mono">© {{ year }} 精工图谱 · 平湖工厂 ｜ 浙 ICP 备 0000000 号</p>
+        <p class="bottom__copy mono">
+          © {{ year }} 精工图谱 · 平湖工厂 ｜ 内部流程演示环境，数据均为样例
+        </p>
+        <!--
         <div class="bottom__links">
           <button v-for="l in footerLegal" :key="l" class="linkbtn bottom__link" type="button">
             {{ l }}
@@ -89,6 +92,7 @@ const year = new Date().getFullYear()
           <span class="bottom__sep">/</span>
           <button class="linkbtn bottom__link" type="button">English</button>
         </div>
+        -->
       </div>
     </div>
   </footer>
