@@ -23,7 +23,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    // 单页无路由，不需要 history fallback；产物只有 index.html + 静态资源
     target: 'es2019',
+    // 两个入口：流程演示（index.html）+ 部门工作台（workbench.html）
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        workbench: fileURLToPath(new URL('./workbench.html', import.meta.url)),
+      },
+    },
   },
 })

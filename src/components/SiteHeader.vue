@@ -41,6 +41,7 @@ const today = computed(() => {
         <span class="mono strip__issue">销售—研发协同流程 · 需求到报价 Demo</span>
         <div class="strip__right">
           <span class="mono strip__tag">内部演示环境</span>
+          <a class="strip__wb mono" href="./workbench.html">部门工作台 →</a>
 
           <!-- 主题切换 -->
           <div class="theme" role="group" aria-label="界面主题">
@@ -156,6 +157,15 @@ const today = computed(() => {
 .theme__btn.is-on {
   background: var(--ink);
   color: var(--paper);
+}
+.strip__wb {
+  font-size: 0.62rem;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.strip__wb:hover {
+  color: var(--ink);
 }
 .strip__tag {
   font-size: 0.58rem;
