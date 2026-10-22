@@ -6,39 +6,30 @@
 import { computed, ref } from 'vue'
 import AppIcon from '../components/AppIcon.vue'
 import { flowSteps, stepIndex, stages } from './data.js'
-import { saveOrders, stamp, toCsv } from './store.js'
+import { allOrders } from './store.js'
+import { saveCustomers, stamp, toCsv } from './store.js'
 
 const props = defineProps({
   view: { type: String, required: true }, // home | orders | reports | actions | settings
-  orders: { type: Array, required: true },
+  customers: { type: Array, required: true },
   activeId: { type: String, default: '' },
   theme: { type: String, default: 'tool' },
 })
-const emit = defineEmits(['pick', 'reset', 'theme'])
+const emit = defineEmits(['pick', 'reset', 'theme', 'new-customer', 'new-order'])
 
 const statusOf = (o) => (o.stage === 'final' ? 'done' : o.returned ? 'back' : 'doing')
 const statusLabel = { doing: '进行中', back: '已打回', done: '已完成' }
 const progress = (c) => Math.round(((stepIndex(c.step || 'S1') + 1) / flowSteps.length) * 100)
 
-/** 工单 → 客户 展开成行 */
-const rows = computed(() =>
-  props.orders.flatMap((o) =>
-    o.customers.map((c) => ({
-      ...c,
-      orderId: o.id,
-      orderTitle: o.title,
-      orderOwner: o.owner,
-      orderPriority: o.priority,
-    })),
-  ),
-)
+/** 客户 → 工单 展平为行 */
+const rows = computed(() => allOrders(props.customers))
 
 /* 首页 KPI */
 const kpi = computed(() => {
   const all = rows.value
   return [
-    { label: '工单', value: String(props.orders.length) },
-    { label: '客户', value: String(all.length) },
+    { label: '客户', value: String(props.customers.length) },
+    { label: '工单', value: String(all.length) },
     { label: '进行中', value: String(all.filter((o) => o.stage !== 'final').length) },
     { label: '已打回', value: String(all.filter((o) => o.returned).length) },
     { label: '已完成', value: String(all.filter((o) => o.stage === 'final').length) },
@@ -107,7 +98,7 @@ const actions = [
 /* 设置 */
 const csvAll = () => {
   const all = rows.value
-    .map((c) => `# ${c.orderId} / ${c.id} ${c.customer}\n${toCsv(c)}`)
+    .map((o) => `# ${o.customerName} / ${o.id} ${o.title}\n${toCsv(o)}`)
     .join('\n\n')
   const blob = new Blob(['\uFEFF' + all], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
@@ -120,7 +111,7 @@ const csvAll = () => {
 
 const copied = ref('')
 function exportJson() {
-  const blob = new Blob([JSON.stringify(props.orders, null, 2)], { type: 'application/json' })
+  const blob = new Blob([JSON.stringify(props.customers, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -149,7 +140,7 @@ function closeAll() {
       o.updatedAt = stamp()
     }
   })
-  saveOrders(props.orders)
+  saveCustomers(props.customers)
 }
 </script>
 
@@ -170,7 +161,7 @@ function closeAll() {
           <button
           class="btn btn--sm"
           type="button"
-          @click="emit('pick', orders[0].id, orders[0].customers[0].id, orders[0].customers[0].stage)"
+          @click="emit('pick', rows[0].customerId, rows[0].id, rows[0].stage)"
         >
             进入工单工作台
           </button>
@@ -180,10 +171,10 @@ function closeAll() {
             v-for="o in rows"
             :key="o.id"
             class="orow"
-            @click="emit('pick', o.orderId, o.id, o.stage)"
+            @click="emit('pick', o.customerId, o.id, o.stage)"
           >
             <span class="orow__id mono">{{ o.id }}</span>
-            <span class="orow__cust">{{ o.customer }}</span>
+            <span class="orow__cust">{{ o.customerName }}</span>
             <span class="orow__stage mono" :class="'is-' + statusOf(o)">
               {{ statusLabel[statusOf(o)] }}
             </span>
@@ -234,7 +225,7 @@ function closeAll() {
         <tbody>
           <tr v-for="o in orders" :key="o.id" :class="{ 'is-on': o.id === activeId }">
             <td>
-              <span class="mono oid">{{ o.orderId }}</span>
+              <span class="mono oid">{{ o.customerName }}</span>
               <span class="oid2 mono">{{ o.id }}</span>
               <span class="pri mono" :class="{ 'is-high': o.priority === '高' }">{{ o.priority }}</span>
             </td>
@@ -255,10 +246,10 @@ function closeAll() {
             <td class="mono">{{ o.owner }}</td>
             <td class="mono">{{ o.updatedAt }}</td>
             <td class="ops">
-              <button class="btn btn--sm" type="button" @click="emit('pick', o.orderId, o.id, o.stage)">
+              <button class="btn btn--sm" type="button" @click="emit('pick', o.customerId, o.id, o.stage)">
                 处理
               </button>
-              <button class="btn btn--sm" type="button" @click="emit('pick', o.orderId, o.id, 'versions')">
+              <button class="btn btn--sm" type="button" @click="emit('pick', o.customerId, o.id, 'versions')">
                 版本/留痕
               </button>
             </td>
@@ -273,8 +264,8 @@ function closeAll() {
     <div class="cards">
       <div v-for="d in docs" :key="d.id" class="card">
         <header class="card__head">
-          <h3 class="card__title">{{ d.customer }}</h3>
-          <span class="card__sub mono">{{ d.orderId }} / {{ d.id }} · 更新 {{ d.updatedAt }}</span>
+          <h3 class="card__title">{{ d.customerName }}</h3>
+          <span class="card__sub mono">{{ d.customerName }} / {{ d.id }} · 更新 {{ d.updatedAt }}</span>
         </header>
         <ul class="doclist">
           <li v-for="it in d.items" :key="it.label" class="docrow">
@@ -285,7 +276,7 @@ function closeAll() {
           <li v-if="!d.items.length" class="docrow mono">暂无单据</li>
         </ul>
         <footer class="card__foot">
-          <button class="btn btn--sm" type="button" @click="emit('pick', d.orderId, d.id, 'versions')">
+          <button class="btn btn--sm" type="button" @click="emit('pick', d.customerId, d.id, 'versions')">
             <AppIcon name="external" :size="12" />
             查看版本与留痕
           </button>
@@ -309,7 +300,7 @@ function closeAll() {
             <p class="aitem__note">{{ a.note }}</p>
             <p class="aitem__meta mono">{{ a.id }} · {{ a.order }} · {{ a.owner }} · 截止 {{ a.due }}</p>
           </div>
-          <button class="btn btn--sm" type="button" @click="emit('pick', a.order, '', 'versions')">查看版本</button>
+          <button class="btn btn--sm" type="button" @click="emit('pick', '', a.order, 'versions')">查看版本</button>
         </li>
       </ul>
     </div>

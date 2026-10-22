@@ -8,11 +8,11 @@
 import { computed, ref } from 'vue'
 import AppIcon from '../components/AppIcon.vue'
 import { flowSteps, stages, stepIndex } from './data.js'
-import { activateVersion, createVersion, eventMeta, saveOrders } from './store.js'
+import { activateVersion, createVersion, eventMeta, saveCustomers } from './store.js'
 
 const props = defineProps({
-  order: { type: Object, required: true },
-  orders: { type: Array, required: true },
+  order: { type: Object, required: true }, // 当前工单
+  customers: { type: Array, required: true }, // 顶层客户列表（用于持久化）
 })
 const emit = defineEmits(['goto', 'say'])
 
@@ -51,7 +51,7 @@ const newSummary = ref('')
 
 function doCreate() {
   const v = createVersion(props.order, newNote.value.trim(), newSummary.value.trim())
-  saveOrders(props.orders)
+  saveCustomers(props.customers)
   showNew.value = false
   newNote.value = ''
   newSummary.value = ''
@@ -63,7 +63,7 @@ function doCreate() {
 function rollback(v) {
   if (v.id === props.order.activeVersion) return
   activateVersion(props.order, v.id)
-  saveOrders(props.orders)
+  saveCustomers(props.customers)
   emit('say', '已回溯到需求版本 ' + v.label + '（' + (v.note || '') + '）')
   emit('goto', v.stage)
 }

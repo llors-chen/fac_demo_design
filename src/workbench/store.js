@@ -1,13 +1,13 @@
 /**
  * 工单存储（部门工作台共用）
  *
- * 层级：工单（1）→ 客户（N）→ 需求版本（N）→ 流程步骤 S1–S5
- * 一张工单可挂多个客户，每个客户各自持有需求版本与流程进度；
+ * 层级：客户（1）→ 工单（N）→ 需求版本（N）→ 流程步骤 S1–S5
+ * 一个客户可以有多张工单；每张工单各自持有需求版本与流程进度；
  * 客户每次变更需求 = 新建需求版本，S1–S5 重走一遍。通过 localStorage 持久化。
  */
 import { flowSteps } from './data.js'
 
-const KEY = 'dsh-workorders-v6'
+const KEY = 'dsh-workorders-v7'
 
 export const stamp = (d = new Date()) =>
   `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(
@@ -80,6 +80,8 @@ const filledUpTo = (code, includeSelf = false) => {
 const filledAll = () => Object.fromEntries(flowSteps.map((s) => [s.code, true]))
 const filledNone = () => Object.fromEntries(flowSteps.map((s) => [s.code, false]))
 
+/* ---------------- 工厂 ---------------- */
+
 /** 生成一个需求版本 */
 export function makeVersion(label, payload = {}) {
   const step = payload.step || 'S1'
@@ -114,27 +116,28 @@ export function makeVersion(label, payload = {}) {
   }
 }
 
-/** 生成一个客户（工单下的需求方） */
-export function makeCustomer(orderId, index, payload = {}) {
+/** 生成一张工单（承载需求版本与流程进度） */
+export function makeOrder(customerName, payload = {}) {
   const step = payload.step || 'S1'
   const stage = flowSteps.find((s) => s.code === step)?.view || 'sales'
   const createdAt = payload.createdAt || stamp()
   const filled = payload.filled || (step === 'S1' ? filledNone() : filledUpTo(step))
-  const cust = {
-    id: `${orderId}-C${index}`,
-    customer: payload.customer || '新客户',
-    contact: payload.contact || '',
+  return {
+    id: payload.id || nextOrderId([], createdAt),
+    customer: customerName,
+    title: payload.title || '新建工单',
     product: payload.product || '待定',
     qty: payload.qty || '待定',
     due: payload.due || '待定',
     priority: payload.priority || '中',
     owner: payload.owner || '销售 · 陈工',
+    note: payload.note || '',
     createdAt,
     updatedAt: createdAt,
     step,
     stage,
-    returned: false,
-    returnReason: '',
+    returned: !!payload.returned,
+    returnReason: payload.returnReason || '',
     filled,
     records:
       payload.records ||
@@ -146,8 +149,8 @@ export function makeCustomer(orderId, index, payload = {}) {
         stage: 'sales',
         actor: payload.owner || '销售 · 陈工',
         type: 'create',
-        action: '新建客户并建单（R01）',
-        detail: `${payload.customer || '新客户'} · ${payload.product || '待定'} · ${payload.qty || ''}`,
+        action: '新建工单（R01）',
+        detail: `${customerName} · ${payload.title || ''} · ${payload.product || ''} · ${payload.qty || ''}`,
       },
     ],
     versions: [
@@ -167,31 +170,44 @@ export function makeCustomer(orderId, index, payload = {}) {
       { label: '报表', value: '500413 · 待填写' },
     ],
   }
-  return cust
 }
 
-/** 生成一张工单 */
-export function makeOrder(payload = {}) {
+/** 生成一个客户（顶层，可挂多张工单） */
+export function makeCustomer(payload = {}) {
   const createdAt = payload.createdAt || stamp()
   return {
-    id: payload.id || nextOrderId([], createdAt),
-    title: payload.title || '新建工单',
+    id: payload.id || 'CU-' + String(payload.index || 1).padStart(3, '0'),
+    customer: payload.customer || '新客户',
+    contact: payload.contact || '',
     owner: payload.owner || '销售 · 陈工',
     priority: payload.priority || '中',
     note: payload.note || '',
     createdAt,
     updatedAt: createdAt,
-    customers: payload.customers || [],
+    orders: payload.orders || [],
   }
 }
 
-/** 生成工单号：WO-YYYYMMDD-NNN */
-export function nextOrderId(orders, day) {
+/** 展平所有工单（附带客户信息） */
+export function allOrders(list) {
+  return (list || []).flatMap((c) =>
+    (c.orders || []).map((o) => ({
+      ...o,
+      customerId: c.id,
+      customerName: c.customer,
+      contact: c.contact,
+      customerPriority: c.priority,
+    })),
+  )
+}
+
+/** 生成工单号：WO-YYYYMMDD-NNN（跨客户查重） */
+export function nextOrderId(list, day) {
   const d = day || stamp()
   const [mm, dd] = d.split(' ')[0].split('-')
   const year = new Date().getFullYear()
   const prefix = `WO-${year}${mm}${dd}`
-  const used = orders
+  const used = allOrders(list)
     .map((o) => o.id)
     .filter((id) => id.startsWith(prefix))
     .map((id) => parseInt(id.slice(prefix.length + 1), 10) || 0)
@@ -199,27 +215,48 @@ export function nextOrderId(orders, day) {
   return `${prefix}-${String(next).padStart(3, '0')}`
 }
 
+/** 按工单号定位 */
+export function findOrder(list, orderId) {
+  for (const c of list || []) {
+    const o = (c.orders || []).find((x) => x.id === orderId)
+    if (o) return { customer: c, order: o }
+  }
+  return null
+}
+
 /* ---------------- 种子数据 ---------------- */
 
-const c1 = makeCustomer('WO-20261021-001', 1, {
+/* 客户一：越野机器人客户（王工）· 两张工单 */
+const cu1 = makeCustomer({
+  id: 'CU-001',
+  index: 1,
   customer: '越野机器人客户（王工）',
   contact: '王工 · 138****2210',
+  owner: '销售 · 陈工',
+  priority: '高',
+  createdAt: '09-20 10:00',
+})
+
+const o11 = makeOrder('越野机器人客户（王工）', {
+  id: 'WO-20261021-001',
+  title: '转向推杆 · CANopen 定制',
   product: 'CAHB-22-D2E · CANopen 定制',
   qty: 'EAU 50 pcs',
   due: '样件 8 周',
   priority: '高',
+  owner: '销售 · 陈工',
   createdAt: '10-21 09:10',
-  note: '客户最初需求：24 V 平台、行程 300 mm（已作废）',
-  summary: '48 V · 3,500 N · 行程 50 · CANopen + M12',
   step: 'S1',
   icrm: 'iCRM-2026-0451',
+  note: '48 V · 3,500 N · 行程 50 · CANopen + M12',
+  detail: '客户变更需求：48 V 平台、行程 50 mm、CANopen + 绝对位置反馈、M12 四芯线束',
   docs: [
     { label: 'iCRM', value: 'iCRM-2026-0451' },
     { label: '报表', value: '500413 · 起草中' },
     { label: '附件', value: '3 个（500413 / CAHB-22 规格图 / 现场照片）' },
   ],
 })
-c1.versions = [
+o11.versions = [
   makeVersion('R01', {
     index: 1,
     createdAt: '10-18 14:20',
@@ -272,8 +309,8 @@ c1.versions = [
     ],
   }),
 ]
-c1.activeVersion = 'V2'
-c1.events = [
+o11.activeVersion = 'V2'
+o11.events = [
   {
     time: '10-21 09:12',
     step: 'S1',
@@ -285,9 +322,49 @@ c1.events = [
   },
 ]
 
-const c2 = makeCustomer('WO-20261021-001', 2, {
+const o12 = makeOrder('越野机器人客户（王工）', {
+  id: 'WO-20260915-003',
+  title: '示教器推杆 · 标准型',
+  product: 'CAHB-20-B3E · 标准型',
+  qty: 'EAU 200 pcs',
+  due: '首批 10 周',
+  priority: '中',
+  owner: '销售 · 陈工',
+  createdAt: '09-15 09:30',
+  step: 'S5',
+  icrm: 'iCRM-2026-0388',
+  note: '标准型已量产（同一客户的第二张工单）',
+  detail: '示教器升降推杆 · 标准型 · EAU 200 pcs',
+  filled: filledAll(),
+  records: recordsUpTo('S5', 'done', {
+    S1: { start: '09-15 09:30', end: '09-15 10:02', dur: '32 min', status: 'done' },
+    S2: { start: '09-15 10:30', end: '09-15 11:20', dur: '50 min', status: 'done' },
+    S3: { start: '09-15 14:00', end: '09-15 15:10', dur: '1 h 10 min', status: 'done' },
+    S4: { start: '09-16 09:00', end: '09-16 11:30', dur: '2 h 30 min', status: 'done' },
+    S5: { start: '09-16 15:00', end: '09-16 16:20', dur: '1 h 20 min', status: 'done' },
+  }),
+  docs: [
+    { label: 'iCRM', value: 'iCRM-2026-0388' },
+    { label: '报表', value: '500413 R02 · 三方已确认' },
+    { label: 'M3 单据', value: 'BOM-20260916-052' },
+    { label: '报价单', value: 'Q-20260916-003 · 含税 ￥268,400' },
+  ],
+})
+cu1.orders = [o11, o12]
+
+/* 客户二：华东物流装备（刘工）· 一张工单（已被 AE 打回） */
+const cu2 = makeCustomer({
+  id: 'CU-002',
+  index: 2,
   customer: '华东物流装备（刘工）',
   contact: '刘工 · 139****7788',
+  owner: '销售 · 周工',
+  priority: '中',
+  createdAt: '10-21 08:30',
+})
+const o21 = makeOrder('华东物流装备（刘工）', {
+  id: 'WO-20261021-002',
+  title: '输送线推杆 · IP69K 增强',
   product: 'CAHB-20-B3E · IP69K 增强',
   qty: 'EAU 120 pcs',
   due: '样件 6 周',
@@ -295,18 +372,17 @@ const c2 = makeCustomer('WO-20261021-001', 2, {
   owner: '销售 · 周工',
   createdAt: '10-21 08:40',
   step: 'S2',
-  note: '客户首次提出需求（IP69K 增强）',
-  summary: '24 V · IP69K · EAU 120 pcs',
-  detail: '物流输送线用推杆 · 24 V 平台 · 要求 IP69K',
   icrm: 'iCRM-2026-0438',
+  note: '客户首次提出需求（IP69K 增强）',
+  detail: '物流输送线用推杆 · 24 V 平台 · 要求 IP69K',
 })
-c2.returned = true
-c2.returnReason = '客户未提供静态载荷，且温度口径与平台标准不一致，需销售补充后再填表。'
-c2.records = recordsUpTo('S2', 'back', {
+o21.returned = true
+o21.returnReason = '客户未提供静态载荷，且温度口径与平台标准不一致，需销售补充后再填表。'
+o21.records = recordsUpTo('S2', 'back', {
   S1: { start: '10-21 08:40', end: '10-21 09:20', dur: '40 min', status: 'done' },
   S2: { start: '10-21 09:52', status: 'back', output: '500413 报表（已打回补充）' },
 })
-c2.events = [
+o21.events = [
   {
     time: '10-21 10:26',
     step: 'S2',
@@ -314,7 +390,7 @@ c2.events = [
     actor: 'AE · 李工',
     type: 'back',
     action: '打回销售（退回 S1）',
-    detail: c2.returnReason,
+    detail: o21.returnReason,
   },
   {
     time: '10-21 09:52',
@@ -331,52 +407,74 @@ c2.events = [
     stage: 'sales',
     actor: '销售 · 周工',
     type: 'create',
-    action: '新建客户并建单（R01）',
+    action: '新建工单（R01）',
     detail: '物流输送线用推杆 · 24 V 平台 · EAU 120 pcs · 要求 IP69K',
   },
 ]
-c2.versions[0].step = 'S2'
-c2.versions[0].stage = 'ae'
-c2.versions[0].returned = true
-c2.versions[0].returnReason = c2.returnReason
-c2.versions[0].filled = filledUpTo('S2')
-c2.versions[0].records = c2.records
-c2.versions[0].events = c2.events
-c2.docs = [
+o21.versions[0].step = 'S2'
+o21.versions[0].stage = 'ae'
+o21.versions[0].returned = true
+o21.versions[0].returnReason = o21.returnReason
+o21.versions[0].filled = filledUpTo('S2')
+o21.versions[0].records = o21.records
+o21.versions[0].events = o21.events
+o21.docs = [
   { label: 'iCRM', value: 'iCRM-2026-0438' },
   { label: '报表', value: '500413 R01 · 待补充' },
   { label: '附件', value: '2 个（客户需求邮件 / 现场视频）' },
 ]
+cu2.orders = [o21]
 
-const c3 = makeCustomer('WO-20261021-001', 3, {
+/* 客户三：极地科考装备（张工）· 一张工单 */
+const cu3 = makeCustomer({
+  id: 'CU-003',
+  index: 3,
   customer: '极地科考装备（张工）',
   contact: '张工 · 137****5566',
-  product: 'CAHB-22-D2E · 低温型',
-  qty: 'EAU 30 pcs',
-  due: '样件 10 周',
-  priority: '中',
   owner: '销售 · 陈工',
-  createdAt: '10-21 11:20',
-  step: 'S1',
-  note: '客户首次提出需求（-40 ℃ 低温启动）',
-  summary: '-40 ℃ 低温 · EAU 30 pcs',
-  detail: '科考设备舱门推杆 · 要求 -40 ℃ 可启动',
-  icrm: 'iCRM-2026-0460',
+  priority: '中',
+  createdAt: '10-21 11:00',
 })
+cu3.orders = [
+  makeOrder('极地科考装备（张工）', {
+    id: 'WO-20261021-005',
+    title: '舱门推杆 · 低温型',
+    product: 'CAHB-22-D2E · 低温型',
+    qty: 'EAU 30 pcs',
+    due: '样件 10 周',
+    priority: '中',
+    owner: '销售 · 陈工',
+    createdAt: '10-21 11:20',
+    step: 'S1',
+    icrm: 'iCRM-2026-0460',
+    note: '-40 ℃ 低温启动',
+    detail: '科考设备舱门推杆 · 要求 -40 ℃ 可启动',
+  }),
+]
 
-const c4 = makeCustomer('WO-20261020-018', 1, {
+/* 客户四：北欧农机（Eric）· 一张工单（三个需求版本） */
+const cu4 = makeCustomer({
+  id: 'CU-004',
+  index: 4,
   customer: '北欧农机（Eric）',
   contact: 'Eric · +46 70 *** 2211',
+  owner: '销售 · 陈工',
+  priority: '中',
+  createdAt: '10-16 09:50',
+})
+const o41 = makeOrder('北欧农机（Eric）', {
+  id: 'WO-20261020-018',
+  title: '农机转向推杆 · 标准型批量',
   product: 'CAHB-22-D2E · 标准型',
   qty: 'EAU 300 pcs',
   due: '首批 12 周',
   priority: '中',
+  owner: '销售 · 陈工',
   createdAt: '10-20 09:05',
   step: 'S5',
-  note: '最终确认版本（当前）',
-  summary: '48 V · 3,500 N · 行程 250 · 标准型 EAU 300',
-  detail: '最终确认：标准型 CAHB-22-D2E · EAU 300 pcs',
   icrm: 'iCRM-2026-0402',
+  note: '最终确认版本（当前）',
+  detail: '最终确认：标准型 CAHB-22-D2E · EAU 300 pcs',
   filled: filledAll(),
   records: recordsUpTo('S5', 'done', {
     S1: { start: '10-20 09:05', end: '10-20 09:26', dur: '21 min', status: 'done' },
@@ -398,7 +496,7 @@ const c4 = makeCustomer('WO-20261020-018', 1, {
     { label: '报价单', value: 'Q-20261020-018 · 含税 ￥412,600' },
   ],
 })
-c4.versions = [
+o41.versions = [
   makeVersion('R01', {
     index: 1,
     createdAt: '10-16 10:00',
@@ -425,11 +523,11 @@ c4.versions = [
     step: 'S5',
     filled: filledAll(),
     records: recordsUpTo('S5', 'done'),
-    docs: c4.docs,
+    docs: o41.docs,
   }),
 ]
-c4.activeVersion = 'V3'
-c4.events = [
+o41.activeVersion = 'V3'
+o41.events = [
   {
     time: '10-20 17:40',
     step: 'S5',
@@ -458,26 +556,9 @@ c4.events = [
     detail: '标准型 CAHB-22-D2E · EAU 300 pcs',
   },
 ]
+cu4.orders = [o41]
 
-export const seedOrders = [
-  makeOrder({
-    id: 'WO-20261021-001',
-    title: '越野机器人转向推杆 · CANopen 定制项目',
-    owner: '销售 · 陈工',
-    priority: '高',
-    note: '同批项目下有三个需求方，各自推进需求版本与流程',
-    createdAt: '10-21 09:10',
-    customers: [c1, c2, c3],
-  }),
-  makeOrder({
-    id: 'WO-20261020-018',
-    title: '北欧农机转向推杆 · 标准型批量',
-    owner: '销售 · 陈工',
-    priority: '中',
-    createdAt: '10-20 09:05',
-    customers: [c4],
-  }),
-]
+export const seedCustomers = [cu1, cu2, cu3, cu4]
 
 const clone = (v) => JSON.parse(JSON.stringify(v))
 
@@ -486,71 +567,79 @@ const clone = (v) => JSON.parse(JSON.stringify(v))
 const VALID = flowSteps.map((s) => s.code)
 const STAGE_STEP = { sales: 'S1', ae: 'S2', rd: 'S3', final: 'S5' }
 
-function ensureCustomer(cust) {
-  if (!VALID.includes(cust.step)) cust.step = STAGE_STEP[cust.stage] || 'S1'
+function ensureOrder(o) {
+  if (!VALID.includes(o.step)) o.step = STAGE_STEP[o.stage] || 'S1'
   const f = filledNone()
   VALID.forEach((code) => {
-    f[code] = !!(cust.filled || {})[code]
+    f[code] = !!(o.filled || {})[code]
   })
-  cust.filled = f
-  const records = Array.isArray(cust.records) ? cust.records.filter((r) => VALID.includes(r.step)) : []
-  cust.records = records.length === VALID.length ? records : buildRecords()
-  if (Array.isArray(cust.events)) cust.events = cust.events.filter((e) => !e.step || VALID.includes(e.step))
-  if (!Array.isArray(cust.versions) || !cust.versions.length) {
-    cust.versions = [makeVersion('R01', { index: 1, step: cust.step })]
-    cust.activeVersion = 'V1'
+  o.filled = f
+  const records = Array.isArray(o.records) ? o.records.filter((r) => VALID.includes(r.step)) : []
+  o.records = records.length === VALID.length ? records : buildRecords()
+  if (Array.isArray(o.events)) o.events = o.events.filter((e) => !e.step || VALID.includes(e.step))
+  if (!Array.isArray(o.versions) || !o.versions.length) {
+    o.versions = [makeVersion('R01', { index: 1, step: o.step })]
+    o.activeVersion = 'V1'
   } else {
-    cust.versions.forEach((v) => {
+    o.versions.forEach((v) => {
       if (!VALID.includes(v.step)) v.step = 'S1'
       if (!v.filled) v.filled = filledNone()
       if (!Array.isArray(v.records) || v.records.length !== VALID.length) v.records = buildRecords()
       if (Array.isArray(v.events)) v.events = v.events.filter((e) => !e.step || VALID.includes(e.step))
     })
-    if (!cust.versions.some((v) => v.id === cust.activeVersion)) {
-      cust.activeVersion = cust.versions[cust.versions.length - 1].id
+    if (!o.versions.some((v) => v.id === o.activeVersion)) {
+      o.activeVersion = o.versions[o.versions.length - 1].id
     }
   }
-  if (!cust.docs) cust.docs = []
-  return cust
+  if (!o.docs) o.docs = []
+  if (!o.title) o.title = o.product || '工单'
+  return o
 }
 
-function ensureOrder(o) {
-  if (!Array.isArray(o.customers) || !o.customers.length) {
-    const legacy = {
-      ...o,
-      customer: o.customer || o.title || '未命名客户',
-      contact: o.contact || '',
-      product: o.product || '待定',
-      qty: o.qty || '待定',
-      due: o.due || '待定',
-      id: `${o.id}-C1`,
-    }
-    delete legacy.customers
-    o.customers = [legacy]
+/** 规范化客户；兼容 v6（工单 → 客户）结构，自动倒置为 客户 → 工单 */
+function ensureCustomer(c, index) {
+  if (Array.isArray(c.orders)) {
+    c.orders.forEach(ensureOrder)
+    if (!c.id) c.id = 'CU-' + String(index + 1).padStart(3, '0')
+    return c
   }
-  o.customers.forEach(ensureCustomer)
-  if (!o.title) o.title = `${o.customers[0].customer} · ${o.customers[0].product}`
-  if (!o.owner) o.owner = o.customers[0].owner || '销售 · 陈工'
-  if (!o.priority) o.priority = '中'
-  return o
+  const orders = (c.customers || []).map((old) => {
+    const o = {
+      ...old,
+      customer: old.customer || c.title || '未命名客户',
+      title: old.title || old.product || c.title || '工单',
+      note: old.note || '',
+    }
+    delete o.customers
+    return ensureOrder(o)
+  })
+  return makeCustomer({
+    id: 'CU-' + String(index + 1).padStart(3, '0'),
+    index: index + 1,
+    customer: c.title || (orders[0] && orders[0].customer) || '未命名客户',
+    owner: c.owner,
+    priority: c.priority,
+    createdAt: c.createdAt,
+    orders,
+  })
 }
 
 /* ---------------- 持久化 ---------------- */
 
-export function loadOrders() {
+export function loadCustomers() {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length) return parsed.map(ensureOrder)
+      if (Array.isArray(parsed) && parsed.length) return parsed.map(ensureCustomer)
     }
   } catch (e) {
     /* 隐私模式 / 沙箱下忽略 */
   }
-  return clone(seedOrders).map(ensureOrder)
+  return clone(seedCustomers).map(ensureCustomer)
 }
 
-export function saveOrders(list) {
+export function saveCustomers(list) {
   try {
     localStorage.setItem(KEY, JSON.stringify(list))
   } catch (e) {
@@ -558,78 +647,97 @@ export function saveOrders(list) {
   }
 }
 
-export function resetOrders() {
+export function resetCustomers() {
   try {
     localStorage.removeItem(KEY)
   } catch (e) {
     /* 忽略 */
   }
-  return clone(seedOrders).map(ensureOrder)
+  return clone(seedCustomers).map(ensureCustomer)
 }
 
-/** 新建工单（可同时带第一个客户） */
-export function createOrder(list, payload) {
-  const order = makeOrder({
-    id: payload.id || nextOrderId(list),
-    title: payload.title,
+/** 顶层新建客户（可同时带第一张工单） */
+export function createCustomer(list, payload) {
+  const c = makeCustomer({
+    index: list.length + 1,
+    customer: payload.customer,
+    contact: payload.contact,
     owner: payload.owner,
     priority: payload.priority,
     note: payload.note,
   })
-  if (payload.customer?.customer) {
-    order.customers.push(
-      makeCustomer(order.id, 1, {
-        ...payload.customer,
-        owner: payload.owner,
+  if (payload.order?.title) {
+    c.orders.push(
+      makeOrder(c.customer, {
+        id: nextOrderId(list),
+        title: payload.order.title,
+        product: payload.order.product,
+        qty: payload.order.qty,
+        due: payload.order.due,
         priority: payload.priority,
+        owner: payload.owner,
+        note: payload.order.note,
+        summary: payload.order.summary,
+        detail: payload.order.detail,
       }),
     )
   }
-  list.unshift(order)
-  return order
+  list.push(c)
+  return c
 }
 
-/** 在工单下新建客户 */
-export function createCustomer(order, payload) {
-  const cust = makeCustomer(order.id, (order.customers?.length || 0) + 1, payload)
-  order.customers.push(cust)
-  order.updatedAt = stamp()
-  return cust
+/** 在某客户下新建工单 */
+export function createOrder(customer, list, payload) {
+  const o = makeOrder(customer.customer, {
+    id: nextOrderId(list),
+    title: payload.title,
+    product: payload.product,
+    qty: payload.qty,
+    due: payload.due,
+    priority: payload.priority || customer.priority,
+    owner: payload.owner || customer.owner,
+    note: payload.note,
+    summary: payload.summary,
+    detail: payload.detail,
+  })
+  customer.orders.push(o)
+  customer.updatedAt = stamp()
+  return o
 }
 
 /* ---------------- 需求版本 ---------------- */
 
-export function snapshotVersion(cust) {
-  const v = (cust.versions || []).find((x) => x.id === cust.activeVersion)
+export function snapshotVersion(order) {
+  const v = (order.versions || []).find((x) => x.id === order.activeVersion)
   if (!v) return null
-  v.step = cust.step
-  v.stage = cust.stage
-  v.returned = cust.returned
-  v.returnReason = cust.returnReason
-  v.filled = clone(cust.filled || {})
-  v.records = clone(cust.records || [])
-  v.events = clone(cust.events || [])
-  v.docs = clone(cust.docs || [])
+  v.step = order.step
+  v.stage = order.stage
+  v.returned = order.returned
+  v.returnReason = order.returnReason
+  v.filled = clone(order.filled || {})
+  v.records = clone(order.records || [])
+  v.events = clone(order.events || [])
+  v.docs = clone(order.docs || [])
   v.updatedAt = stamp()
   return v
 }
 
-export function activateVersion(cust, versionId) {
-  const v = (cust.versions || []).find((x) => x.id === versionId)
+export function activateVersion(order, versionId) {
+  const v = (order.versions || []).find((x) => x.id === versionId)
   if (!v) return null
-  if (cust.activeVersion && cust.activeVersion !== versionId) snapshotVersion(cust)
-  cust.activeVersion = v.id
-  cust.step = VALID.includes(v.step) ? v.step : 'S1'
-  cust.stage = v.stage
-  cust.returned = v.returned
-  cust.returnReason = v.returnReason
-  cust.filled = clone(v.filled)
-  cust.records = clone(v.records)
-  cust.events = clone(v.events)
-  cust.docs = clone(v.docs)
-  cust.updatedAt = stamp()
-  logEvent(cust, {
-    step: cust.step,
+  if (order.activeVersion && order.activeVersion !== versionId) snapshotVersion(order)
+  order.activeVersion = v.id
+  order.step = VALID.includes(v.step) ? v.step : 'S1'
+  order.stage = v.stage
+  order.returned = v.returned
+  order.returnReason = v.returnReason
+  order.filled = clone(v.filled)
+  order.records = clone(v.records)
+  order.events = clone(v.events)
+  order.docs = clone(v.docs)
+  order.updatedAt = stamp()
+  logEvent(order, {
+    step: order.step,
     stage: 'sales',
     actor: '系统',
     type: 'note',
@@ -640,44 +748,44 @@ export function activateVersion(cust, versionId) {
   return v
 }
 
-export function createVersion(cust, note, summary) {
-  snapshotVersion(cust)
-  const n = (cust.versions || []).length + 1
+export function createVersion(order, note, summary) {
+  snapshotVersion(order)
+  const n = (order.versions || []).length + 1
   const label = 'R' + String(n).padStart(2, '0')
   const v = makeVersion(label, {
     index: n,
     note: note || '客户变更需求',
     summary: summary || '客户需求变更，重新走完整流程',
     detail: (note || '客户变更需求') + (summary ? '：' + summary : ''),
-    actor: cust.owner || '销售',
+    actor: order.owner || '销售',
     step: 'S1',
-    docs: (cust.docs || []).map((d) =>
+    docs: (order.docs || []).map((d) =>
       ['报表', 'M3 单据', '报价单'].includes(d.label) ? { ...d, value: '待重新生成' } : d,
     ),
   })
-  cust.versions = [...(cust.versions || []), v]
-  cust.activeVersion = v.id
-  cust.step = 'S1'
-  cust.stage = 'sales'
-  cust.returned = false
-  cust.returnReason = ''
-  cust.filled = clone(v.filled)
-  cust.records = clone(v.records)
-  cust.events = clone(v.events)
-  cust.docs = clone(v.docs)
-  cust.updatedAt = stamp()
+  order.versions = [...(order.versions || []), v]
+  order.activeVersion = v.id
+  order.step = 'S1'
+  order.stage = 'sales'
+  order.returned = false
+  order.returnReason = ''
+  order.filled = clone(v.filled)
+  order.records = clone(v.records)
+  order.events = clone(v.events)
+  order.docs = clone(v.docs)
+  order.updatedAt = stamp()
   return v
 }
 
 /* ---------------- 留痕与记录 ---------------- */
 
-export function logEvent(cust, event) {
-  cust.events = [{ time: stamp(), ...event }, ...(cust.events || [])]
-  cust.updatedAt = stamp()
+export function logEvent(order, event) {
+  order.events = [{ time: stamp(), ...event }, ...(order.events || [])]
+  order.updatedAt = stamp()
 }
 
-export function closeStep(cust, code, output, status = 'done') {
-  const r = (cust.records || []).find((x) => x.step === code)
+export function closeStep(order, code, output, status = 'done') {
+  const r = (order.records || []).find((x) => x.step === code)
   if (!r) return
   r.end = stamp()
   r.status = status
@@ -685,17 +793,17 @@ export function closeStep(cust, code, output, status = 'done') {
   if (r.start && !r.dur) r.dur = r.start === r.end ? '—' : `${r.start} → ${r.end}`
 }
 
-export function openStep(cust, code) {
-  const r = (cust.records || []).find((x) => x.step === code)
+export function openStep(order, code) {
+  const r = (order.records || []).find((x) => x.step === code)
   if (!r) return
   if (!r.start) r.start = stamp()
   r.status = 'doing'
 }
 
 /** 导出留痕 CSV */
-export function toCsv(cust) {
+export function toCsv(order) {
   const head = ['时间', '步骤', '部门', '操作人', '类型', '动作', '详情']
-  const rows = (cust.events || []).map((e) => [
+  const rows = (order.events || []).map((e) => [
     e.time,
     e.step || '',
     e.stage || '',

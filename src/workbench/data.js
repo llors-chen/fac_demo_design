@@ -149,6 +149,113 @@ export const stepOutline = {
   },
 }
 
+/* ---------------- S1 需求接收与建档：邮件系统 + 初步结论 + 模拟需求报表 ---------------- */
+
+/** 邮件系统（客户信息来源：正式邮件文字描述，附件较少） */
+export const s1Mail = {
+  account: 'sales.pinghu@ewellix-demo.com',
+  server: 'iCRM Mail · 平湖工厂',
+  note: '客户信息来源以正式邮件文字描述为主，附件通常 1–2 个（图纸 / 照片）',
+  mails: [
+    {
+      id: 'M1',
+      from: '王工 <wang.gang@offroad-robot.com>',
+      to: 'sales.pinghu@ewellix-demo.com',
+      time: '10-21 09:12',
+      subject: '转向执行机构电控化改造 · 需求确认（第一版）',
+      body: [
+        '陈工，您好：',
+        '',
+        '关于越野自主机器人转向机构电控化改造项目，现将需求说明如下：',
+        '一、项目背景：原转向为手轮机构，现改为电控，拟采用贵司电动推杆直接推动方向盘。',
+        '二、电气平台：整机电池为 48V 平台（工作范围约 40~55V）。',
+        '三、性能要求：额定推力 3500N，峰值 4500N；速度 30mm/s 以上；行程 50mm 即可。',
+        '四、控制要求：主控采用 CANopen，需绝对位置反馈；线束统一 M12 四芯、长度 1.5 米。',
+        '五、使用环境：户外越野，粉尘与泥水较多，温度 -20~60 ℃，振动较大。',
+        '六、寿命要求：整机 5 年，推杆往复不少于 60 万次。',
+        '七、商务：预计年用量 50 套（EAU 50 pcs），目标单价 1850 元以内，样件希望 6 周。',
+        '八、认证：CE 即可，UL 暂不考虑。',
+        '',
+        '另附现场布置图一张，供参考。盼复。',
+        '',
+        '王工',
+        '越野机器人事业部',
+      ].join('\n'),
+      attachments: [{ name: '转向机构布置图.pdf', size: '820 KB' }],
+    },
+    {
+      id: 'M2',
+      from: '王工 <wang.gang@offroad-robot.com>',
+      to: 'sales.pinghu@ewellix-demo.com',
+      time: '10-21 10:40',
+      subject: '补充：CANopen 与线束规格确认',
+      body: [
+        '陈工，补充两点：',
+        '',
+        '1）CANopen 通讯请按 CiA 301 标准实现，波特率 500k，节点地址由我方整机分配；',
+        '2）线束统一 M12 A 编码四芯，长度 1.5 米，接头朝出线方向与布置图一致。',
+        '',
+        '另外整机急停时转向机构会承受较大静态载荷，具体数值我确认后补给你。',
+        '',
+        '王工',
+      ].join('\n'),
+      attachments: [],
+    },
+    {
+      id: 'M3',
+      from: '王工 <wang.gang@offroad-robot.com>',
+      to: 'sales.pinghu@ewellix-demo.com',
+      time: '10-21 11:05',
+      subject: '回复：静态载荷与温度口径',
+      body: [
+        '陈工，',
+        '',
+        '1）静态载荷：整机急停工况下最大约 6000N，请按此校核；',
+        '2）温度：-20~60 ℃ 为实际使用范围，若贵司平台标准更宽，我方接受按平台标准执行；',
+        '3）密封：沿用旧图 2×1.5 密封槽，不要更改。',
+        '',
+        '样件 6 周能否满足？如不能满足请给出贵司最短交期。',
+        '',
+        '王工',
+      ].join('\n'),
+      attachments: [],
+    },
+  ],
+}
+
+/** 从邮件中提取的字段（点击"提取邮件内容"后填入） */
+export const s1Extract = [
+  { key: 'customer', label: '客户 / 项目', value: '越野机器人客户（王工）· 转向机构电控化改造', source: 'M1' },
+  { key: 'scene', label: '应用场景', value: 'off road autonomous robot · 推杆推动方向盘（原手轮机构）', source: 'M1' },
+  { key: 'params', label: '关键参数', value: '48 V（40~55 V）· 额定 3,500 N / 峰值 4,500 N · ≥30 mm/s · 行程 50 mm', source: 'M1' },
+  { key: 'control', label: '控制与接口', value: 'CANopen（CiA 301 / 500k）· 绝对位置反馈 · M12 A 编码四芯 · 线长 1.5 m', source: 'M1 + M2' },
+  { key: 'env', label: '使用环境', value: '户外越野 · 粉尘泥水 · -20~60 ℃（可接受平台标准）· 强振动', source: 'M1 + M3' },
+  { key: 'life', label: '寿命要求', value: '整机 5 年 · 推杆往复 ≥ 60 万次', source: 'M1' },
+  { key: 'load', label: '静态载荷', value: '急停工况最大约 6,000 N', source: 'M3' },
+  { key: 'biz', label: '商务与认证', value: 'EAU 50 pcs · 目标单价 ≤ ￥1,850 · 样件期望 6 周 · CE（UL 不做）', source: 'M1' },
+]
+
+/** 初步结论默认值（可编辑；AI 可一键生成） */
+export const s1Conclusion = {
+  family: '电动推杆（线性执行器）· CAHB 系列',
+  model: 'CAHB-22-D2E（48 V / 3,500 N / 37 mm/s / 行程 50）',
+  verdict:
+    '需求明确、参数齐全，判断可做。倾向以 CAHB-22-D2E 为基型，需改 3 处：CANopen 控制板、M12 四芯线束、绝对位置反馈。',
+  open: '静态载荷 6,000 N 待曲线校核；密封槽按旧图 2×1.5；温度按平台标准执行。',
+}
+
+/** 模拟需求报表（生成时按此结构输出） */
+export const s1ReportRows = [
+  { no: '1', label: '客户 / 项目', from: 'customer' },
+  { no: '2', label: '应用场景', from: 'scene' },
+  { no: '3.1', label: '性能（电压 / 推力 / 速度 / 行程）', from: 'params' },
+  { no: '3.2', label: '控制与接口', from: 'control' },
+  { no: '3.4', label: '环境与测试', from: 'env' },
+  { no: '3.5', label: '认证', from: 'cert' },
+  { no: '4', label: '商务（数量 / 单价 / 交期）', from: 'biz' },
+  { no: '5', label: '可行性初步结论', from: 'verdict' },
+]
+
 /* ---------------- S1 / S2 销售：客户对接内容 + AI 分析 ---------------- */
 
 export const salesIntake = {
